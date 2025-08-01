@@ -28,8 +28,8 @@ namespace {
   }
 
   lv_point_t CoordinateRelocate(int16_t radius, int16_t angle) {
-    return lv_point_t {.x = CoordinateXRelocate(radius * static_cast<int32_t>(Sine(angle)) / LV_TRIG_SCALE),
-                       .y = CoordinateYRelocate(radius * static_cast<int32_t>(Cosine(angle)) / LV_TRIG_SCALE)};
+    return lv_point_t{.x = CoordinateXRelocate(radius * static_cast<int32_t>(Sine(angle)) / LV_TRIG_SCALE),
+                      .y = CoordinateYRelocate(radius * static_cast<int32_t>(Cosine(angle)) / LV_TRIG_SCALE)};
   }
 
   void EventHandler(lv_obj_t* obj, lv_event_t event) {
@@ -40,25 +40,25 @@ namespace {
 
 
 WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeController,
-                                 const Controllers::Battery& batteryController,
-                                 const Controllers::Ble& bleController,
-                                 Controllers::NotificationManager& notificationManager,
-                                 Controllers::Settings& settingsController,
-                                 Components::LittleVgl& lvgl)
-  : currentDateTime {{}},
+                                         const Controllers::Battery& batteryController,
+                                         const Controllers::Ble& bleController,
+                                         Controllers::NotificationManager& notificationManager,
+                                         Controllers::Settings& settingsController,
+                                         Components::LittleVgl& lvgl)
+  : currentDateTime{{}},
     batteryIcon(true),
-    dateTimeController {dateTimeController},
-    batteryController {batteryController},
-    bleController {bleController},
-    notificationManager {notificationManager},
-    settingsController {settingsController},
-    lvgl {lvgl} {
+    dateTimeController{dateTimeController},
+    batteryController{batteryController},
+    bleController{bleController},
+    notificationManager{notificationManager},
+    settingsController{settingsController},
+    lvgl{lvgl} {
 
   sHour = 99;
   sMinute = 99;
 
-  offset_angle_minute = settingsController.GetAnalogHardMinuteAngle();
-  offset_angle_hour = settingsController.GetAnalogHardHourAngle();
+  offsetAngleMinute = settingsController.GetAnalogHardMinuteAngle();
+  offsetAngleHour = settingsController.GetAnalogHardHourAngle();
 
   isMenuOpen = false;
   lastTouchTime = xTaskGetTickCount();
@@ -182,7 +182,7 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   lv_style_set_line_rounded(&minute_line_style_trace, LV_STATE_DEFAULT, false);
   lv_obj_add_style(minute_body_trace, LV_LINE_PART_MAIN, &minute_line_style_trace);
 
-  SetMinuteHandAngle(offset_angle_minute);
+  SetMinuteHandAngle(offsetAngleMinute);
 
   lv_style_init(&hour_line_style);
   lv_style_set_line_width(&hour_line_style, LV_STATE_DEFAULT, 7);
@@ -196,7 +196,7 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   lv_style_set_line_rounded(&hour_line_style_trace, LV_STATE_DEFAULT, false);
   lv_obj_add_style(hour_body_trace, LV_LINE_PART_MAIN, &hour_line_style_trace);
 
-  SetHourHandAngle(offset_angle_hour);
+  SetHourHandAngle(offsetAngleHour);
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 
@@ -273,14 +273,14 @@ void WatchFaceAnalogHard::UpdateClock() {
   const uint8_t minute = dateTimeController.Minutes();
 
   if (sMinute != minute) {
-    const int16_t angle = (minute * -6) + offset_angle_minute;
+    const int16_t angle = (minute * -6) + offsetAngleMinute;
     SetMinuteWheelAngle(angle);
   }
 
   if (sHour != hour || sMinute != minute) {
     sHour = hour;
     sMinute = minute;
-    const int16_t angle = -(hour * 30 + minute / 2) + offset_angle_hour;
+    const int16_t angle = -(hour * 30 + minute / 2) + offsetAngleHour;
     SetHourWheelAngle(angle);
   }
 }
@@ -386,23 +386,23 @@ bool WatchFaceAnalogHard::OnTouchEvent(uint16_t x, uint16_t y) {
 
   if (!inContinuousTouch) {
     // if starting a new touch (i.e. last touch input was more than continuousTouchTimeout ago), leave it be if it's on the close button
-    if ((x >= btnCloseX and x <= btnCloseX+btnCloseWidth) &&
-        (y >= btnCloseY and y <= btnCloseY+btnCloseHeight)) {
+    if ((x >= btnCloseX and x <= btnCloseX + btnCloseWidth) &&
+        (y >= btnCloseY and y <= btnCloseY + btnCloseHeight)) {
       return false;
     }
     inContinuousTouch = true;
     lastTouchTime = xTaskGetTickCount();
-    touchStartAngle = _lv_atan2(x - LV_HOR_RES/2, y - LV_VER_RES/2);
+    touchStartAngle = _lv_atan2(x - LV_HOR_RES / 2, y - LV_VER_RES / 2);
     uint16_t distanceToCenter = std::sqrt(
-        _lv_pow(x - LV_HOR_RES/2, 2) +
-        _lv_pow(y - LV_VER_RES/2, 2)
-    );
+      _lv_pow(x - LV_HOR_RES / 2, 2) +
+      _lv_pow(y - LV_VER_RES / 2, 2)
+      );
     if (distanceToCenter < 65) {
       draggedRing = WHEEL_HOUR;
-      origWheelOffset = offset_angle_hour;
+      origWheelOffset = offsetAngleHour;
     } else {
       draggedRing = WHEEL_MINUTE;
-      origWheelOffset = offset_angle_minute;
+      origWheelOffset = offsetAngleMinute;
     }
   } else {
     // not in a new touch
@@ -411,16 +411,16 @@ bool WatchFaceAnalogHard::OnTouchEvent(uint16_t x, uint16_t y) {
       // just did long tap to get into menu, ignore until user releases long tap
       return true;
     }
-    int16_t touchAngleDifference = (int16_t)_lv_atan2(x - LV_HOR_RES/2, y - LV_VER_RES/2) - touchStartAngle;
+    int16_t touchAngleDifference = (int16_t) _lv_atan2(x - LV_HOR_RES / 2, y - LV_VER_RES / 2) - touchStartAngle;
     if (draggedRing == WHEEL_MINUTE) {
-      offset_angle_minute = origWheelOffset - touchAngleDifference;
-      settingsController.SetAnalogHardMinuteAngle(offset_angle_minute);
-      SetMinuteHandAngle(offset_angle_minute);
+      offsetAngleMinute = origWheelOffset - touchAngleDifference;
+      settingsController.SetAnalogHardMinuteAngle(offsetAngleMinute);
+      SetMinuteHandAngle(offsetAngleMinute);
       sMinute = 99;
     } else {
-      offset_angle_hour = origWheelOffset - touchAngleDifference;
-      settingsController.SetAnalogHardHourAngle(offset_angle_hour);
-      SetHourHandAngle(offset_angle_hour);
+      offsetAngleHour = origWheelOffset - touchAngleDifference;
+      settingsController.SetAnalogHardHourAngle(offsetAngleHour);
+      SetHourHandAngle(offsetAngleHour);
       sHour = 99;
     }
     UpdateClock();

@@ -35,18 +35,18 @@ namespace Pinetime {
       private:
         uint8_t sHour, sMinute;
 
-        Utility::DirtyValue<uint8_t> batteryPercentRemaining {0};
-        Utility::DirtyValue<bool> isCharging {};
-        Utility::DirtyValue<bool> bleState {};
+        Utility::DirtyValue<uint8_t> batteryPercentRemaining{0};
+        Utility::DirtyValue<bool> isCharging{};
+        Utility::DirtyValue<bool> bleState{};
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>> currentDateTime;
-        Utility::DirtyValue<bool> notificationState {false};
+        Utility::DirtyValue<bool> notificationState{false};
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::days>> currentDate;
 
         // degree angles: [0,360]
         // (at least, I think _lv_atan2() can return 360 so handle that case too)
         // degree 0 means the hand is pointing straight up, 90 means straight right
-        uint16_t offset_angle_minute;
-        uint16_t offset_angle_hour;
+        uint16_t offsetAngleMinute;
+        uint16_t offsetAngleHour;
 
         lv_obj_t* minor_scales_minute;
         lv_obj_t* major_scales_minute;
@@ -91,8 +91,9 @@ namespace Pinetime {
         uint16_t touchStartAngle;
         TickType_t lastTouchTime;
         bool inContinuousTouch;
-        enum ModifiedRing {IGNORED, WHEEL_MINUTE, WHEEL_HOUR} draggedRing;
         lv_indev_data_t lvglInputData;
+
+        enum ModifiedRing { IGNORED, WHEEL_MINUTE, WHEEL_HOUR } draggedRing;
 
         Controllers::DateTime& dateTimeController;
         const Controllers::Battery& batteryController;
@@ -122,11 +123,11 @@ namespace Pinetime {
 
       static Screens::Screen* Create(AppControllers& controllers) {
         return new Screens::WatchFaceAnalogHard(controllers.dateTimeController,
-                                            controllers.batteryController,
-                                            controllers.bleController,
-                                            controllers.notificationManager,
-                                            controllers.settingsController,
-                                            controllers.lvgl);
+                                                controllers.batteryController,
+                                                controllers.bleController,
+                                                controllers.notificationManager,
+                                                controllers.settingsController,
+                                                controllers.lvgl);
       };
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
