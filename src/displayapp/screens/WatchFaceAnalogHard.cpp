@@ -57,9 +57,8 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   sHour = 99;
   sMinute = 99;
 
-  // TODO: load from settings
-  offset_angle_minute = 18;
-  offset_angle_hour = 225;
+  offset_angle_minute = settingsController.GetAnalogHardMinuteAngle();
+  offset_angle_hour = settingsController.GetAnalogHardHourAngle();
 
   isMenuOpen = false;
   lastTouchTime = xTaskGetTickCount();
@@ -344,7 +343,7 @@ void WatchFaceAnalogHard::Refresh() {
 }
 
 void WatchFaceAnalogHard::CloseMenu() {
-  //settingsController.SaveSettings();
+  settingsController.SaveSettings();
   lv_obj_set_hidden(btnClose, true);
   isMenuOpen = false;
 }
@@ -415,10 +414,12 @@ bool WatchFaceAnalogHard::OnTouchEvent(uint16_t x, uint16_t y) {
     int16_t touchAngleDifference = (int16_t)_lv_atan2(x - LV_HOR_RES/2, y - LV_VER_RES/2) - touchStartAngle;
     if (draggedRing == WHEEL_MINUTE) {
       offset_angle_minute = origWheelOffset - touchAngleDifference;
+      settingsController.SetAnalogHardMinuteAngle(offset_angle_minute);
       SetMinuteHandAngle(offset_angle_minute);
       sMinute = 99;
     } else {
       offset_angle_hour = origWheelOffset - touchAngleDifference;
+      settingsController.SetAnalogHardHourAngle(offset_angle_hour);
       SetHourHandAngle(offset_angle_hour);
       sHour = 99;
     }

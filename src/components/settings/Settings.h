@@ -309,10 +309,32 @@ namespace Pinetime {
         return bleRadioEnabled;
       };
 
+      uint16_t GetAnalogHardMinuteAngle() {
+        return settings.analogHardMinuteAngle;
+      };
+
+      uint16_t GetAnalogHardHourAngle() {
+        return settings.analogHardHourAngle;
+      };
+
+      void SetAnalogHardMinuteAngle(uint16_t newValue) {
+        if (newValue != settings.analogHardMinuteAngle) {
+          settingsChanged = true;
+        }
+        settings.analogHardMinuteAngle = newValue;
+      };
+
+      void SetAnalogHardHourAngle(uint16_t newValue) {
+        if (newValue != settings.analogHardHourAngle) {
+          settingsChanged = true;
+        }
+        settings.analogHardHourAngle = newValue;
+      };
+
     private:
       Pinetime::Controllers::FS& fs;
 
-      static constexpr uint32_t settingsVersion = 0x0009;
+      static constexpr uint32_t settingsVersion = 0x000A;
 
       struct SettingsData {
         uint32_t version = settingsVersion;
@@ -338,6 +360,9 @@ namespace Pinetime {
         uint16_t shakeWakeThreshold = 150;
 
         Controllers::BrightnessController::Levels brightLevel = Controllers::BrightnessController::Levels::Medium;
+
+        uint16_t analogHardMinuteAngle = 0;
+        uint16_t analogHardHourAngle = 90;
       };
 
       SettingsData settings;
