@@ -10,6 +10,7 @@
 #include <utility/DirtyValue.h>
 #include <displayapp/screens/Symbols.h>
 #include <displayapp/screens/NotificationIcon.h>
+#include <displayapp/InfiniTimeTheme.h>
 
 namespace Pinetime {
   namespace Applications {
@@ -33,7 +34,7 @@ namespace Pinetime {
         void UpdateSelected(lv_obj_t* object, lv_event_t event);
 
       private:
-        uint8_t sHour, sMinute;
+        uint8_t sHour, sMinute, sSecond;
 
         Utility::DirtyValue<uint8_t> batteryPercentRemaining{0};
         Utility::DirtyValue<bool> isCharging{};
@@ -62,17 +63,22 @@ namespace Pinetime {
         lv_obj_t* hour_body_trace;
         lv_obj_t* minute_body;
         lv_obj_t* minute_body_trace;
+        lv_obj_t* second_body;
 
         lv_point_t hour_point[2];
         lv_point_t hour_point_trace[2];
         lv_point_t minute_point[2];
         lv_point_t minute_point_trace[2];
+        lv_point_t second_point[2];
 
         lv_style_t hour_line_style;
         lv_style_t hour_line_style_trace;
         lv_style_t minute_line_style;
         lv_style_t minute_line_style_trace;
+        lv_style_t second_line_style;
 
+        lv_obj_t* label_date;
+        lv_obj_t* label_weekday;
         lv_obj_t* plugIcon;
         lv_obj_t* notificationIcon;
         lv_obj_t* bleIcon;

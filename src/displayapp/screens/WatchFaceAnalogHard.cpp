@@ -5,6 +5,7 @@ using namespace Pinetime::Applications::Screens;
 namespace {
   constexpr int16_t HourLength = 60;
   constexpr int16_t MinuteLength = 90;
+  constexpr int16_t SecondLength = 110;
 
   // LVGL sin isn't constexpr (though it could be if it were C++) so fix size here
   // All the types are hardcoded anyway and would need changing if the size changed
@@ -56,6 +57,7 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
 
   sHour = 99;
   sMinute = 99;
+  sSecond = 99;
 
   offsetAngleMinute = settingsController.GetAnalogHardMinuteAngle();
   offsetAngleHour = settingsController.GetAnalogHardHourAngle();
@@ -135,7 +137,7 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   lv_label_set_text_static(twelve_hour, "12");
   lv_obj_set_style_local_text_color(twelve_hour, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLUE);
 
-  // Icons, watch hands, and menu button
+  // Icons, date, watch hands, menu button
 
   batteryIcon.Create(lv_scr_act());
   lv_obj_align(batteryIcon.GetObject(), nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
@@ -153,10 +155,23 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   lv_label_set_text_static(notificationIcon, NotificationIcon::GetIcon(false));
   lv_obj_align(notificationIcon, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
 
+  label_date = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(label_date, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::orange);
+  lv_label_set_text_fmt(label_date, "%s %02i", dateTimeController.MonthShortToString(), dateTimeController.Day());
+  lv_label_set_align(label_date, LV_LABEL_ALIGN_CENTER);
+  lv_obj_align(label_date, nullptr, LV_ALIGN_CENTER, 0, 25);
+
+  label_weekday = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(label_weekday, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::orange);
+  lv_label_set_text(label_weekday, dateTimeController.DayOfWeekShortToString());
+  lv_label_set_align(label_weekday, LV_LABEL_ALIGN_CENTER);
+  lv_obj_align(label_weekday, nullptr, LV_ALIGN_CENTER, 0, -25);
+
   minute_body = lv_line_create(lv_scr_act(), nullptr);
   minute_body_trace = lv_line_create(lv_scr_act(), nullptr);
   hour_body = lv_line_create(lv_scr_act(), nullptr);
   hour_body_trace = lv_line_create(lv_scr_act(), nullptr);
+  second_body = lv_line_create(lv_scr_act(), nullptr);
 
   btnClose = lv_btn_create(lv_scr_act(), nullptr);
   btnClose->user_data = this;
@@ -169,6 +184,12 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   lv_obj_set_hidden(btnClose, true);
 
   // Watch hand styles
+
+  lv_style_init(&second_line_style);
+  lv_style_set_line_width(&second_line_style, LV_STATE_DEFAULT, 3);
+  lv_style_set_line_color(&second_line_style, LV_STATE_DEFAULT, LV_COLOR_RED);
+  lv_style_set_line_rounded(&second_line_style, LV_STATE_DEFAULT, true);
+  lv_obj_add_style(second_body, LV_LINE_PART_MAIN, &second_line_style);
 
   lv_style_init(&minute_line_style);
   lv_style_set_line_width(&minute_line_style, LV_STATE_DEFAULT, 7);
@@ -210,6 +231,7 @@ WatchFaceAnalogHard::~WatchFaceAnalogHard() {
   lv_style_reset(&hour_line_style_trace);
   lv_style_reset(&minute_line_style);
   lv_style_reset(&minute_line_style_trace);
+  lv_style_reset(&second_line_style);
 
   lv_obj_clean(lv_scr_act());
 }
@@ -271,6 +293,7 @@ void WatchFaceAnalogHard::SetHourHandAngle(int16_t angle) {
 void WatchFaceAnalogHard::UpdateClock() {
   const uint8_t hour = dateTimeController.Hours();
   const uint8_t minute = dateTimeController.Minutes();
+  uint8_t second = dateTimeController.Seconds();
 
   if (sMinute != minute) {
     const int16_t angle = (minute * -6) + offsetAngleMinute;
@@ -282,6 +305,15 @@ void WatchFaceAnalogHard::UpdateClock() {
     sMinute = minute;
     const int16_t angle = -(hour * 30 + minute / 2) + offsetAngleHour;
     SetHourWheelAngle(angle);
+  }
+
+  if (sSecond != second) {
+    sSecond = second;
+    auto const angle = second * 6;
+
+    second_point[0] = CoordinateRelocate(-20, angle + 180 + lv_linemeter_get_angle_offset(minor_scales_minute));
+    second_point[1] = CoordinateRelocate(SecondLength, angle + 180 + lv_linemeter_get_angle_offset(minor_scales_minute));
+    lv_line_set_points(second_body, second_point, 2);
   }
 }
 
@@ -339,6 +371,11 @@ void WatchFaceAnalogHard::Refresh() {
   currentDateTime = dateTimeController.CurrentDateTime();
   if (currentDateTime.IsUpdated()) {
     UpdateClock();
+
+    currentDate = std::chrono::time_point_cast<std::chrono::days>(currentDateTime.Get());
+    if (currentDate.IsUpdated()) {
+      lv_label_set_text_fmt(label_date, "%s %02i", dateTimeController.MonthShortToString(), dateTimeController.Day());
+    }
   }
 }
 
@@ -417,6 +454,7 @@ bool WatchFaceAnalogHard::OnTouchEvent(uint16_t x, uint16_t y) {
       settingsController.SetAnalogHardMinuteAngle(offsetAngleMinute);
       SetMinuteHandAngle(offsetAngleMinute);
       sMinute = 99;
+      sSecond = 99;
     } else {
       offsetAngleHour = origWheelOffset - touchAngleDifference;
       settingsController.SetAnalogHardHourAngle(offsetAngleHour);

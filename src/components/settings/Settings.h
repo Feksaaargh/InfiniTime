@@ -361,7 +361,7 @@ namespace Pinetime {
 
         Controllers::BrightnessController::Levels brightLevel = Controllers::BrightnessController::Levels::Medium;
 
-        uint16_t analogHardMinuteAngle = 0;
+        uint16_t analogHardMinuteAngle = 315;
         uint16_t analogHardHourAngle = 90;
       };
 
