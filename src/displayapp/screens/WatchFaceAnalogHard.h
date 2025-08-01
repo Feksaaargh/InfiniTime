@@ -20,11 +20,17 @@ namespace Pinetime {
                             const Controllers::Battery& batteryController,
                             const Controllers::Ble& bleController,
                             Controllers::NotificationManager& notificationManager,
-                            Controllers::Settings& settingsController);
+                            Controllers::Settings& settingsController,
+                            Components::LittleVgl& lvgl);
 
         ~WatchFaceAnalogHard() override;
 
         void Refresh() override;
+
+        bool OnTouchEvent(TouchEvents event) override;
+        bool OnTouchEvent(uint16_t x, uint16_t y) override;
+        bool OnButtonPushed() override;
+        void UpdateSelected(lv_obj_t* object, lv_event_t event);
 
       private:
         uint8_t sHour, sMinute;
@@ -46,13 +52,11 @@ namespace Pinetime {
         lv_obj_t* major_scales_minute;
         lv_obj_t* large_scales_minute;
         lv_obj_t* twelve_minute;
-        // TODO: rotatable 12?
 
         lv_obj_t* minor_scales_hour;
         lv_obj_t* major_scales_hour;
         lv_obj_t* large_scales_hour;
         lv_obj_t* twelve_hour;
-        // TODO: rotatable 12?
 
         lv_obj_t* hour_body;
         lv_obj_t* hour_body_trace;
@@ -75,11 +79,27 @@ namespace Pinetime {
 
         BatteryIcon batteryIcon;
 
+        lv_obj_t* btnClose;
+        static constexpr lv_coord_t btnCloseX = 10;
+        static constexpr lv_coord_t btnCloseY = 10;
+        static constexpr lv_coord_t btnCloseWidth = 60;
+        static constexpr lv_coord_t btnCloseHeight = 60;
+
+        bool isMenuOpen;
+        static constexpr TickType_t menuIdleTimeout = pdMS_TO_TICKS(30000);
+        uint16_t origWheelOffset;
+        uint16_t touchStartAngle;
+        TickType_t lastTouchTime;
+        bool inContinuousTouch;
+        enum ModifiedRing {IGNORED, WHEEL_MINUTE, WHEEL_HOUR} draggedRing;
+        lv_indev_data_t lvglInputData;
+
         Controllers::DateTime& dateTimeController;
         const Controllers::Battery& batteryController;
         const Controllers::Ble& bleController;
         Controllers::NotificationManager& notificationManager;
         Controllers::Settings& settingsController;
+        Components::LittleVgl& lvgl;
 
         void SetMinuteWheelAngle(int16_t angle);
         void SetHourWheelAngle(int16_t angle);
@@ -88,6 +108,8 @@ namespace Pinetime {
 
         void SetBatteryIcon();
         void UpdateClock();
+
+        void CloseMenu();
 
         lv_task_t* taskRefresh;
       };
@@ -103,7 +125,8 @@ namespace Pinetime {
                                             controllers.batteryController,
                                             controllers.bleController,
                                             controllers.notificationManager,
-                                            controllers.settingsController);
+                                            controllers.settingsController,
+                                            controllers.lvgl);
       };
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {

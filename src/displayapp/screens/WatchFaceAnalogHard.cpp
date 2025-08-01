@@ -1,4 +1,4 @@
-#include "displayapp/screens/WatchFaceAnalogHard.h"
+#include "WatchFaceAnalogHard.h"
 
 using namespace Pinetime::Applications::Screens;
 
@@ -32,20 +32,27 @@ namespace {
                        .y = CoordinateYRelocate(radius * static_cast<int32_t>(Cosine(angle)) / LV_TRIG_SCALE)};
   }
 
+  void EventHandler(lv_obj_t* obj, lv_event_t event) {
+    auto* screen = static_cast<WatchFaceAnalogHard*>(obj->user_data);
+    screen->UpdateSelected(obj, event);
+  }
 }
+
 
 WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeController,
                                  const Controllers::Battery& batteryController,
                                  const Controllers::Ble& bleController,
                                  Controllers::NotificationManager& notificationManager,
-                                 Controllers::Settings& settingsController)
+                                 Controllers::Settings& settingsController,
+                                 Components::LittleVgl& lvgl)
   : currentDateTime {{}},
     batteryIcon(true),
     dateTimeController {dateTimeController},
     batteryController {batteryController},
     bleController {bleController},
     notificationManager {notificationManager},
-    settingsController {settingsController} {
+    settingsController {settingsController},
+    lvgl {lvgl} {
 
   sHour = 99;
   sMinute = 99;
@@ -53,6 +60,13 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   // TODO: load from settings
   offset_angle_minute = 18;
   offset_angle_hour = 225;
+
+  isMenuOpen = false;
+  lastTouchTime = xTaskGetTickCount();
+  origWheelOffset = 0;
+  touchStartAngle = 0;
+  draggedRing = WHEEL_MINUTE;
+  inContinuousTouch = false;
 
   // Minutes wheel
 
@@ -122,7 +136,7 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   lv_label_set_text_static(twelve_hour, "12");
   lv_obj_set_style_local_text_color(twelve_hour, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLUE);
 
-  // Icons and watch hands
+  // Icons, watch hands, and menu button
 
   batteryIcon.Create(lv_scr_act());
   lv_obj_align(batteryIcon.GetObject(), nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
@@ -144,6 +158,16 @@ WatchFaceAnalogHard::WatchFaceAnalogHard(Controllers::DateTime& dateTimeControll
   minute_body_trace = lv_line_create(lv_scr_act(), nullptr);
   hour_body = lv_line_create(lv_scr_act(), nullptr);
   hour_body_trace = lv_line_create(lv_scr_act(), nullptr);
+
+  btnClose = lv_btn_create(lv_scr_act(), nullptr);
+  btnClose->user_data = this;
+  lv_obj_set_size(btnClose, btnCloseWidth, btnCloseHeight);
+  lv_obj_align(btnClose, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, btnCloseX, btnCloseY);
+  lv_obj_set_style_local_bg_opa(btnClose, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_50);
+  lv_obj_t* lblClose = lv_label_create(btnClose, nullptr);
+  lv_label_set_text(lblClose, "X");
+  lv_obj_set_event_cb(btnClose, EventHandler);
+  lv_obj_set_hidden(btnClose, true);
 
   // Watch hand styles
 
@@ -193,9 +217,11 @@ WatchFaceAnalogHard::~WatchFaceAnalogHard() {
 
 /// Sets the angle of the outer clock wheel
 void WatchFaceAnalogHard::SetMinuteWheelAngle(int16_t angle) {
-  while (angle < 0) {
+  angle %= 360;
+  if (angle < 0) {
     angle += 360;
   }
+
   const uint16_t real_angle = (angle + 180) % 360;
   lv_linemeter_set_angle_offset(minor_scales_minute, real_angle);
   lv_linemeter_set_angle_offset(major_scales_minute, real_angle);
@@ -207,9 +233,11 @@ void WatchFaceAnalogHard::SetMinuteWheelAngle(int16_t angle) {
 
 /// Sets the angle of the inner clock wheel
 void WatchFaceAnalogHard::SetHourWheelAngle(int16_t angle) {
-  while (angle < 0) {
+  angle %= 360;
+  if (angle < 0) {
     angle += 360;
   }
+
   const int16_t real_angle = (angle + 180) % 360;
   lv_linemeter_set_angle_offset(minor_scales_hour, real_angle);
   lv_linemeter_set_angle_offset(major_scales_hour, real_angle);
@@ -264,6 +292,19 @@ void WatchFaceAnalogHard::SetBatteryIcon() {
 }
 
 void WatchFaceAnalogHard::Refresh() {
+  // check if touch was released (for dragging in menu)
+  if (inContinuousTouch) {
+    lvgl.GetTouchPadInfo(&lvglInputData);
+    if (lvglInputData.state == LV_INDEV_STATE_REL) {
+      inContinuousTouch = false;
+    }
+  }
+
+  // auto close menu if open too long
+  if (isMenuOpen && xTaskGetTickCount() - lastTouchTime > menuIdleTimeout) {
+    CloseMenu();
+  }
+
   isCharging = batteryController.IsCharging();
   if (isCharging.IsUpdated()) {
     if (isCharging.Get()) {
@@ -300,4 +341,88 @@ void WatchFaceAnalogHard::Refresh() {
   if (currentDateTime.IsUpdated()) {
     UpdateClock();
   }
+}
+
+void WatchFaceAnalogHard::CloseMenu() {
+  //settingsController.SaveSettings();
+  lv_obj_set_hidden(btnClose, true);
+  isMenuOpen = false;
+}
+
+void WatchFaceAnalogHard::UpdateSelected(lv_obj_t* object, lv_event_t event) {
+  if (event == LV_EVENT_CLICKED && object == btnClose) {
+    CloseMenu();
+  }
+}
+
+bool WatchFaceAnalogHard::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
+  if ((event == Pinetime::Applications::TouchEvents::LongTap) && !isMenuOpen) {
+    lv_obj_set_hidden(btnClose, false);
+    isMenuOpen = true;
+    // Have a fake "ignored" ring selected until user releases their tap.
+    // This prevents unintended dragging.
+    inContinuousTouch = true;
+    draggedRing = IGNORED;
+    return true;
+  }
+  // If menu is open, eat ALL touch inputs
+  if (isMenuOpen) {
+    return true;
+  }
+  return false;
+}
+
+bool WatchFaceAnalogHard::OnButtonPushed() {
+  if (isMenuOpen) {
+    CloseMenu();
+    return true;
+  }
+  return false;
+}
+
+bool WatchFaceAnalogHard::OnTouchEvent(uint16_t x, uint16_t y) {
+  if (!isMenuOpen) {
+    return false;
+  }
+
+  if (!inContinuousTouch) {
+    // if starting a new touch (i.e. last touch input was more than continuousTouchTimeout ago), leave it be if it's on the close button
+    if ((x >= btnCloseX and x <= btnCloseX+btnCloseWidth) &&
+        (y >= btnCloseY and y <= btnCloseY+btnCloseHeight)) {
+      return false;
+    }
+    inContinuousTouch = true;
+    lastTouchTime = xTaskGetTickCount();
+    touchStartAngle = _lv_atan2(x - LV_HOR_RES/2, y - LV_VER_RES/2);
+    uint16_t distanceToCenter = std::sqrt(
+        _lv_pow(x - LV_HOR_RES/2, 2) +
+        _lv_pow(y - LV_VER_RES/2, 2)
+    );
+    if (distanceToCenter < 65) {
+      draggedRing = WHEEL_HOUR;
+      origWheelOffset = offset_angle_hour;
+    } else {
+      draggedRing = WHEEL_MINUTE;
+      origWheelOffset = offset_angle_minute;
+    }
+  } else {
+    // not in a new touch
+    lastTouchTime = xTaskGetTickCount();
+    if (draggedRing == IGNORED) {
+      // just did long tap to get into menu, ignore until user releases long tap
+      return true;
+    }
+    int16_t touchAngleDifference = (int16_t)_lv_atan2(x - LV_HOR_RES/2, y - LV_VER_RES/2) - touchStartAngle;
+    if (draggedRing == WHEEL_MINUTE) {
+      offset_angle_minute = origWheelOffset - touchAngleDifference;
+      SetMinuteHandAngle(offset_angle_minute);
+      sMinute = 99;
+    } else {
+      offset_angle_hour = origWheelOffset - touchAngleDifference;
+      SetHourHandAngle(offset_angle_hour);
+      sHour = 99;
+    }
+    UpdateClock();
+  }
+  return true;
 }
