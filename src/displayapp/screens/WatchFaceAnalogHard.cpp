@@ -249,7 +249,7 @@ void WatchFaceAnalogHard::SetMinuteWheelAngle(int16_t angle) {
   lv_linemeter_set_angle_offset(large_scales_minute, real_angle);
 
   const lv_point_t twelve_loc = CoordinateRelocate(100, angle);
-  lv_obj_set_pos(twelve_minute, twelve_loc.x - 10, twelve_loc.y - 7);
+  lv_obj_set_pos(twelve_minute, twelve_loc.x - 10, twelve_loc.y - 11);
 }
 
 /// Sets the angle of the inner clock wheel
@@ -265,7 +265,7 @@ void WatchFaceAnalogHard::SetHourWheelAngle(int16_t angle) {
   lv_linemeter_set_angle_offset(large_scales_hour, real_angle);
 
   const lv_point_t twelve_loc = CoordinateRelocate(65, angle);
-  lv_obj_set_pos(twelve_hour, twelve_loc.x - 10, twelve_loc.y - 7);
+  lv_obj_set_pos(twelve_hour, twelve_loc.x - 10, twelve_loc.y - 11);
 }
 
 void WatchFaceAnalogHard::SetMinuteHandAngle(int16_t angle) {
