@@ -12,6 +12,11 @@ namespace {
 LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask) : lvgl {lvgl}, wakeLock {systemTask} {
   wakeLock.Lock();
 
+  nRows = 5;
+  nCols = 5;
+  hintViewMode = false;
+  state = State::Playing;
+
   lightDisplay = lv_table_create(lv_scr_act(), nullptr);
   // Table sizing and positioning is handled in RestyleTable() to account for changing table sizes
 
@@ -45,20 +50,68 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
 
   btnCloseMenu = lv_btn_create(lv_scr_act(), nullptr);
   btnCloseMenu->user_data = this;
-  lv_obj_set_size(btnCloseMenu, 60, 60);
-  lv_obj_align(btnCloseMenu, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 15, 15);
+  lv_obj_set_size(btnCloseMenu, 76, 60);
+  lv_obj_align(btnCloseMenu, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 0, 0);
   lv_obj_set_style_local_bg_opa(btnCloseMenu, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
   lv_obj_t* lblClose = lv_label_create(btnCloseMenu, nullptr);
   lv_label_set_text_static(lblClose, "X");
   lv_obj_set_event_cb(btnCloseMenu, EventHandler);
   lv_obj_set_hidden(btnCloseMenu, true);
 
-  // TODO: Rest of the buttons
+  btnToggleHint = lv_btn_create(lv_scr_act(), nullptr);
+  btnToggleHint->user_data = this;
+  lv_obj_set_size(btnToggleHint, 76, 60);
+  lv_obj_align(btnToggleHint, lv_scr_act(), LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  lv_obj_set_style_local_bg_opa(btnToggleHint, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
+  lv_obj_t* lblHint = lv_label_create(btnToggleHint, nullptr);
+  lv_label_set_text_static(lblHint, "?");
+  lv_obj_set_event_cb(btnToggleHint, EventHandler);
+  lv_obj_set_hidden(btnToggleHint, true);
 
-  nRows = 5;
-  nCols = 5;
-  hintViewMode = true;
-  state = State::Playing;
+  btnSizeDecrease = lv_btn_create(lv_scr_act(), nullptr);
+  btnSizeDecrease->user_data = this;
+  lv_obj_set_size(btnSizeDecrease, 70, 60);
+  lv_obj_align(btnSizeDecrease, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
+  lv_obj_set_style_local_bg_opa(btnSizeDecrease, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
+  lv_obj_set_style_local_bg_opa(btnSizeDecrease, LV_BTN_PART_MAIN, LV_STATE_DISABLED, LV_OPA_20);
+  lv_obj_t* lblDecrease = lv_label_create(btnSizeDecrease, nullptr);
+  lv_label_set_text_static(lblDecrease, "-");
+  lv_obj_set_event_cb(btnSizeDecrease, EventHandler);
+  lv_obj_set_hidden(btnSizeDecrease, true);
+
+  btnSizeIncrease = lv_btn_create(lv_scr_act(), nullptr);
+  btnSizeIncrease->user_data = this;
+  lv_obj_set_size(btnSizeIncrease, 70, 60);
+  lv_obj_align(btnSizeIncrease, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
+  lv_obj_set_style_local_bg_opa(btnSizeIncrease, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
+  lv_obj_set_style_local_bg_opa(btnSizeIncrease, LV_BTN_PART_MAIN, LV_STATE_DISABLED, LV_OPA_20);
+  lv_obj_t* lblIncrease = lv_label_create(btnSizeIncrease, nullptr);
+  lv_label_set_text_static(lblIncrease, "+");
+  lv_obj_set_event_cb(btnSizeIncrease, EventHandler);
+  lv_obj_set_hidden(btnSizeIncrease, true);
+
+  btnBoardSize = lv_btn_create(lv_scr_act(), nullptr);
+  btnBoardSize->user_data = this;
+  lv_obj_set_size(btnBoardSize, 86, 60);
+  lv_obj_align(btnBoardSize, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+  lv_obj_set_style_local_bg_opa(btnBoardSize, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_90);
+  lv_obj_set_style_local_bg_color(btnBoardSize, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
+  lblBoardSize = lv_label_create(btnBoardSize, nullptr);
+  lv_label_set_text_fmt(lblBoardSize, "%i x %i", nRows, nCols);
+  lv_obj_set_event_cb(btnBoardSize, EventHandler);
+  lv_obj_set_hidden(btnBoardSize, true);
+
+  winScreenBG = lv_obj_create(lv_scr_act(), nullptr);
+  lv_obj_set_size(winScreenBG, LV_HOR_RES * 8 / 10, LV_VER_RES * 8 / 10);
+  lv_obj_align(winScreenBG, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_local_bg_opa(winScreenBG, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_80);
+  lv_obj_set_style_local_bg_color(winScreenBG, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
+  lv_obj_t* lblWinMessage = lv_label_create(winScreenBG, nullptr);
+  lv_label_set_text_static(lblWinMessage, "You win!");
+  lv_obj_align(lblWinMessage, nullptr, LV_ALIGN_CENTER, 0, -20);
+  lblWinScreenMoveCount = lv_label_create(winScreenBG, nullptr);
+  lv_obj_set_hidden(winScreenBG, true);
+
 
   GenerateGame();
   RestyleTable();
@@ -76,7 +129,8 @@ LightsOut::~LightsOut() {
 
 bool LightsOut::OnButtonPushed() {
   if (state == State::InMenu) {
-    CloseMenu();
+    HideMenu();
+    state = State::Playing;
     return true;
   }
   return false;
@@ -88,7 +142,7 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
     lvgl.GetTouchPadInfo(&tapData);
     const uint16_t tappedCol = tapData.point.x * nCols / LV_HOR_RES;
     const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
-    pressedArr[tappedRow][tappedCol] = !pressedArr[tappedRow][tappedCol];
+    pressedArr[tappedCol][tappedRow] = !pressedArr[tappedCol][tappedRow];
     usedPresses++;
 
     RelightTable();
@@ -112,49 +166,68 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
     return true;
   }
   if (event == TouchEvents::LongTap && state == State::Playing) {
-    OpenMenu();
+    ShowMenu();
+    state = State::InMenu;
     return true;
   }
   return false;
 }
 
 void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
-  if (event == LV_EVENT_CLICKED) {
-    if (object == btnCloseMenu) {
-      CloseMenu();
-    }
-    else if (object == btnSizeIncrease) {
+  // Close menu
+  if (event == LV_EVENT_CLICKED && object == btnCloseMenu) {
+    HideMenu();
+    state = State::Playing;
+    return;
+  }
+  // Toggle hint mode
+  if (event == LV_EVENT_CLICKED && object == btnToggleHint) {
+    hintViewMode = !hintViewMode;
+    RelightTable();
+    return;
+  }
+  // All actions which can require the game to be regenerated
+  bool refreshGame = false;
+  // Board size increase. Long click to only increase columns (up to a maximum of cols+3).
+  if ((event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED) && object == btnSizeIncrease) {
+    if (event == LV_EVENT_SHORT_CLICKED) {
       nCols++;
       nRows++;
-      lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_RELEASED);
-      if (std::max(nRows, nCols) >= 9) {
-        lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_DISABLED);
-      }
-      GenerateGame();
-      RestyleTable();
-      RelightTable();
+    } else {
+      if (nRows >= nCols + 3)
+        return;
+      nRows++;
     }
-    else if (object == btnSizeDecrease) {
+    lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_RELEASED);
+    if (std::max(nRows, nCols) >= 9) {
+      lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_DISABLED);
+    }
+    refreshGame = true;
+  }
+  // Board size decrease. Long click to only decrease columns (down to a minimum of cols-3).
+  if ((event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED) && object == btnSizeDecrease) {
+    if (event == LV_EVENT_SHORT_CLICKED) {
       nCols--;
       nRows--;
-      lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_RELEASED);
-      if (std::min(nRows, nCols) <= 3) {
-        lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_DISABLED);
-      }
-      GenerateGame();
-      RestyleTable();
-      RelightTable();
+    } else {
+      if (nRows <= nCols - 3)
+        return;
+      nRows--;
     }
-    else if (object == btnToggleHint) {
-      hintViewMode = !hintViewMode;
-      RelightTable();
+    lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_RELEASED);
+    if (std::min(nRows, nCols) <= 3) {
+      lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_DISABLED);
     }
+    refreshGame = true;
   }
-  if (event == LV_EVENT_LONG_PRESSED) {
-    if (object == dispBoardSizeBG) {  // TODO: Check if need to also check for dispBoardSize label
-      GenerateGame();
-      RelightTable();
-    }
+  if (event == LV_EVENT_LONG_PRESSED && object == btnBoardSize) {
+    refreshGame = true;
+  }
+  if (refreshGame) {
+    GenerateGame();
+    RestyleTable();
+    RelightTable();
+    lv_label_set_text_fmt(lblBoardSize, "%i x %i", nRows, nCols);
   }
 }
 
@@ -171,8 +244,8 @@ void LightsOut::GenerateGame() {
     totalPressed = 0;
     for (int row = 0; row < nRows; row++) {
       for (int col = 0; col < nCols; col++) {
-        pressedArr[row][col] = (bool) (std::rand() & 1);
-        totalPressed += (int)pressedArr[row][col];
+        pressedArr[col][row] = std::rand() & 1;
+        totalPressed += pressedArr[col][row];
       }
     }
     anyLit = false;
@@ -205,7 +278,7 @@ void LightsOut::RestyleTable() {
 void LightsOut::RelightTable() {
   for (int row = 0; row < nRows; row++) {
     for (int col = 0; col < nCols; col++) {
-      if (hintViewMode && pressedArr[row][col])
+      if (hintViewMode && pressedArr[col][row])
         lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 3 : 4);
       else
         lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 1 : 2);
@@ -218,29 +291,42 @@ bool LightsOut::IsLit(int row, int col) {
   if (row < 0 || row >= nRows || col < 0 || col >= nCols) {
     return false;
   }
-  bool isLit = pressedArr[row][col];
+  bool isLit = pressedArr[col][row];
   if (row > 0)
-    isLit = isLit != pressedArr[row - 1][col];
+    isLit = isLit != pressedArr[col][row - 1];
   if (row < nRows - 1)
-    isLit = isLit != pressedArr[row + 1][col];
+    isLit = isLit != pressedArr[col][row + 1];
   if (col > 0)
-    isLit = isLit != pressedArr[row][col - 1];
+    isLit = isLit != pressedArr[col - 1][row];
   if (col < nCols - 1)
-    isLit = isLit != pressedArr[row][col + 1];
+    isLit = isLit != pressedArr[col + 1][row];
   return isLit;
 }
 
 
 void LightsOut::ShowWin() {
   // TODO: Text (+low opacity bg)
+  lv_label_set_text_fmt(lblWinScreenMoveCount, "Used %i moves", usedPresses);
+  lv_obj_align(lblWinScreenMoveCount, nullptr, LV_ALIGN_CENTER, 0, 20);
+  lv_obj_set_hidden(winScreenBG, false);
 }
 
 void LightsOut::HideWin() {
+  lv_obj_set_hidden(winScreenBG, true);
 }
 
-void LightsOut::OpenMenu() {
-  // TODO: Lift from magic8ball
+void LightsOut::ShowMenu() {
+  lv_obj_set_hidden(btnSizeIncrease, false);
+  lv_obj_set_hidden(btnSizeDecrease, false);
+  lv_obj_set_hidden(btnCloseMenu, false);
+  lv_obj_set_hidden(btnToggleHint, false);
+  lv_obj_set_hidden(btnBoardSize, false);
 }
 
-void LightsOut::CloseMenu() {
+void LightsOut::HideMenu() {
+  lv_obj_set_hidden(btnSizeIncrease, true);
+  lv_obj_set_hidden(btnSizeDecrease, true);
+  lv_obj_set_hidden(btnCloseMenu, true);
+  lv_obj_set_hidden(btnToggleHint, true);
+  lv_obj_set_hidden(btnBoardSize, true);
 }

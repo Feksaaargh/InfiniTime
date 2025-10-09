@@ -35,14 +35,14 @@ namespace Pinetime {
         /// Evaluate the pressed array and populate the main table with the updated states
         void RelightTable();
 
-        /// Return if a specific tile is lit or not
+        /// Check if a specific tile is lit or not
         bool IsLit(int row, int col);
 
         void ShowWin();
         void HideWin();
 
-        void OpenMenu();
-        void CloseMenu();
+        void ShowMenu();
+        void HideMenu();
 
         int nRows;
         int nCols;
@@ -60,8 +60,10 @@ namespace Pinetime {
         lv_obj_t* btnSizeDecrease;
         lv_obj_t* btnCloseMenu;
         lv_obj_t* btnToggleHint;
-        lv_obj_t* dispBoardSize;
-        lv_obj_t* dispBoardSizeBG;
+        lv_obj_t* btnBoardSize;
+        lv_obj_t* lblBoardSize;
+        lv_obj_t* winScreenBG;
+        lv_obj_t* lblWinScreenMoveCount;
 
         Components::LittleVgl& lvgl;
         Pinetime::System::WakeLock wakeLock;
