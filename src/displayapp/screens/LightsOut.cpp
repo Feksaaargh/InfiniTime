@@ -273,13 +273,15 @@ void LightsOut::RestyleTable() {
   lv_table_set_row_cnt(lightDisplay, nRows);
   lv_table_set_col_cnt(lightDisplay, nCols);
   for (int col = 0; col < nCols; col++) {
-    lv_table_set_col_width(lightDisplay, col, LV_HOR_RES / nCols);
+    // This approach for width fills out the screen width more correctly than simply LV_HOR_RES / nCols.
+    lv_table_set_col_width(lightDisplay, col, (LV_HOR_RES * col / nCols) - (LV_HOR_RES * (col-1) / nCols));
   }
   // Modified from https://docs.lvgl.io/7.11/widgets/table.html#simple-table
   lv_obj_set_height(lightDisplay, LV_VER_RES);  // Needed else part of the table may be cut off
   const lv_table_ext_t* ext = (lv_table_ext_t*)lv_obj_get_ext_attr(lightDisplay);
   for (int row = 0; row < nRows; row++) {
-    ext->row_h[row] = LV_VER_RES / nRows;
+    // This approach for height fills out the screen height more correctly than simply LV_VER_RES / nRows.
+    ext->row_h[row] = (LV_VER_RES * row / nRows) - (LV_VER_RES * (row - 1) / nRows);
   }
   lv_obj_align(lightDisplay, nullptr, LV_ALIGN_IN_TOP_MID, 0, 0);
 }
