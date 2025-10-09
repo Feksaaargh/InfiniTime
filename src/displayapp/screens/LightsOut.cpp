@@ -159,6 +159,7 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
     return true;
   }
   if (event == TouchEvents::Tap && state == State::Won) {
+    hintViewMode = false;
     HideWin();
     GenerateGame();
     RelightTable();
