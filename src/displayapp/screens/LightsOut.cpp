@@ -315,7 +315,7 @@ bool LightsOut::IsLit(int row, int col) {
 
 
 void LightsOut::ShowWin() {
-  lv_label_set_text_fmt(lblWinScreenMoveCount, "Used %i moves", usedPresses);
+  lv_label_set_text_fmt(lblWinScreenMoveCount, "Moves: %i", usedPresses);
   lv_obj_align(lblWinScreenMoveCount, nullptr, LV_ALIGN_CENTER, 0, 20);
   lv_obj_set_hidden(winScreenBG, false);
 }
