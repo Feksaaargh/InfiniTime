@@ -75,7 +75,7 @@ namespace Pinetime {
     template <>
     struct AppTraits<Apps::LightsOut> {
       static constexpr Apps app = Apps::LightsOut;
-      static constexpr const char* icon = "L"; // TODO: Lightbulb icon
+      static constexpr const char* icon = Screens::Symbols::lightbulb;
 
       static Screens::Screen* Create(AppControllers& controllers) {
         return new Screens::LightsOut(controllers.lvgl, *controllers.systemTask);
