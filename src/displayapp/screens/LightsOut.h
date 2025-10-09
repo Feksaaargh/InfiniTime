@@ -21,7 +21,6 @@ namespace Pinetime {
         ~LightsOut() override;
 
         bool OnButtonPushed() override;
-        bool OnTouchEvent(TouchEvents event) override;
 
         void UpdateSelected(lv_obj_t* object, lv_event_t event);
 

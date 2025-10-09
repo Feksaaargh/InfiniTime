@@ -19,6 +19,8 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   state = State::Playing;
 
   lightDisplay = lv_table_create(lv_scr_act(), nullptr);
+  lightDisplay->user_data = this;
+  lv_obj_set_event_cb(lightDisplay, EventHandler);
   // Table sizing and positioning is handled in RestyleTable() to account for changing table sizes
 
   // Yellow for lit buttons
@@ -121,6 +123,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_label_set_text_static(lblWinMessage, "You win!");
   lv_obj_align(lblWinMessage, nullptr, LV_ALIGN_CENTER, 0, -20);
   lblWinScreenMoveCount = lv_label_create(winScreenBG, nullptr);
+  lv_obj_set_state(winScreenBG, LV_STATE_DISABLED);
   lv_obj_set_hidden(winScreenBG, true);
 
   GenerateGame();
@@ -141,44 +144,6 @@ bool LightsOut::OnButtonPushed() {
   if (state == State::InMenu) {
     HideMenu();
     state = State::Playing;
-    return true;
-  }
-  return false;
-}
-
-bool LightsOut::OnTouchEvent(TouchEvents event) {
-  // TODO: Fix phantom touches when exiting menu or entering app
-  if (event == TouchEvents::Tap && state == State::Playing) {
-    lv_indev_data_t tapData;
-    lvgl.GetTouchPadInfo(&tapData);
-    const uint16_t tappedCol = tapData.point.x * nCols / LV_HOR_RES;
-    const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
-    pressedArr[tappedCol][tappedRow] = !pressedArr[tappedCol][tappedRow];
-    usedPresses++;
-    RelightTable();
-    int numLit = 0;
-    for (int row = 0; row < nRows; row++) {
-      for (int col = 0; col < nCols; col++) {
-        numLit += (int)IsLit(row, col);
-      }
-    }
-    if (numLit == 0) {
-      ShowWin();
-      state = State::Won;
-    }
-    return true;
-  }
-  if (event == TouchEvents::Tap && state == State::Won) {
-    solnViewMode = false;
-    HideWin();
-    GenerateGame();
-    RelightTable();
-    state = State::Playing;
-    return true;
-  }
-  if (event == TouchEvents::LongTap && state == State::Playing) {
-    ShowMenu();
-    state = State::InMenu;
     return true;
   }
   return false;
@@ -239,6 +204,40 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
     RestyleTable();
     RelightTable();
     lv_label_set_text_fmt(lblBoardSize, "%i x %i", nRows, nCols);
+    return;
+  }
+  // Handle main table click
+  if (object == lightDisplay) {
+    if (event == LV_EVENT_SHORT_CLICKED && state == State::Playing) {
+      lv_indev_data_t tapData;
+      lvgl.GetTouchPadInfo(&tapData);
+      const uint16_t tappedCol = tapData.point.x * nCols / LV_HOR_RES;
+      const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
+      pressedArr[tappedCol][tappedRow] = !pressedArr[tappedCol][tappedRow];
+      usedPresses++;
+      RelightTable();
+      int numLit = 0;
+      for (int row = 0; row < nRows; row++) {
+        for (int col = 0; col < nCols; col++) {
+          numLit += (int)IsLit(row, col);
+        }
+      }
+      if (numLit == 0) {
+        ShowWin();
+        state = State::Won;
+      }
+    }
+    else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
+      solnViewMode = false;
+      HideWin();
+      GenerateGame();
+      RelightTable();
+      state = State::Playing;
+    }
+    else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
+      ShowMenu();
+      state = State::InMenu;
+    }
   }
 }
 
