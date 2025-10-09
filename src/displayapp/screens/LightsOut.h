@@ -23,6 +23,8 @@ namespace Pinetime {
         bool OnButtonPushed() override;
         bool OnTouchEvent(TouchEvents event) override;
 
+        void UpdateSelected(lv_obj_t* object, lv_event_t event);
+
       private:
         /// Populate the pressedArr with random values, guaranteeing at least some buttons to be pressed
         void GenerateGame();
@@ -47,13 +49,19 @@ namespace Pinetime {
         std::vector<std::vector<bool>> pressedArr;
 
         unsigned int usedPresses;
-        bool solutionViewMode;
+        bool hintViewMode;
 
         lv_style_t styleActive;
         lv_style_t styleInactive;
         lv_style_t styleHintActive;
         lv_style_t styleHintInactive;
         lv_obj_t* lightDisplay;
+        lv_obj_t* btnSizeIncrease;
+        lv_obj_t* btnSizeDecrease;
+        lv_obj_t* btnCloseMenu;
+        lv_obj_t* btnToggleHint;
+        lv_obj_t* dispBoardSize;
+        lv_obj_t* dispBoardSizeBG;
 
         Components::LittleVgl& lvgl;
         Pinetime::System::WakeLock wakeLock;

@@ -2,6 +2,13 @@
 
 using namespace Pinetime::Applications::Screens;
 
+namespace {
+  void EventHandler(lv_obj_t* obj, lv_event_t event) {
+    auto* screen = static_cast<LightsOut*>(obj->user_data);
+    screen->UpdateSelected(obj, event);
+  }
+}
+
 LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask) : lvgl {lvgl}, wakeLock {systemTask} {
   wakeLock.Lock();
 
@@ -36,9 +43,21 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_style_set_border_color(&styleHintInactive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL4, &styleHintInactive);
 
-  nRows = 3;
-  nCols = 3;
-  solutionViewMode = true;
+  btnCloseMenu = lv_btn_create(lv_scr_act(), nullptr);
+  btnCloseMenu->user_data = this;
+  lv_obj_set_size(btnCloseMenu, 60, 60);
+  lv_obj_align(btnCloseMenu, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 15, 15);
+  lv_obj_set_style_local_bg_opa(btnCloseMenu, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
+  lv_obj_t* lblClose = lv_label_create(btnCloseMenu, nullptr);
+  lv_label_set_text_static(lblClose, "X");
+  lv_obj_set_event_cb(btnCloseMenu, EventHandler);
+  lv_obj_set_hidden(btnCloseMenu, true);
+
+  // TODO: Rest of the buttons
+
+  nRows = 5;
+  nCols = 5;
+  hintViewMode = true;
   state = State::Playing;
 
   GenerateGame();
@@ -99,6 +118,46 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
   return false;
 }
 
+void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
+  if (event == LV_EVENT_CLICKED) {
+    if (object == btnCloseMenu) {
+      CloseMenu();
+    }
+    else if (object == btnSizeIncrease) {
+      nCols++;
+      nRows++;
+      lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_RELEASED);
+      if (std::max(nRows, nCols) >= 9) {
+        lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_DISABLED);
+      }
+      GenerateGame();
+      RestyleTable();
+      RelightTable();
+    }
+    else if (object == btnSizeDecrease) {
+      nCols--;
+      nRows--;
+      lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_RELEASED);
+      if (std::min(nRows, nCols) <= 3) {
+        lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_DISABLED);
+      }
+      GenerateGame();
+      RestyleTable();
+      RelightTable();
+    }
+    else if (object == btnToggleHint) {
+      hintViewMode = !hintViewMode;
+      RelightTable();
+    }
+  }
+  if (event == LV_EVENT_LONG_PRESSED) {
+    if (object == dispBoardSizeBG) {  // TODO: Check if need to also check for dispBoardSize label
+      GenerateGame();
+      RelightTable();
+    }
+  }
+}
+
 // Randomize which buttons are pressed or not, and prevent a too boring game
 void LightsOut::GenerateGame() {
   pressedArr = std::vector<std::vector<bool>>(nCols);
@@ -146,7 +205,7 @@ void LightsOut::RestyleTable() {
 void LightsOut::RelightTable() {
   for (int row = 0; row < nRows; row++) {
     for (int col = 0; col < nCols; col++) {
-      if (solutionViewMode && pressedArr[row][col])
+      if (hintViewMode && pressedArr[row][col])
         lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 3 : 4);
       else
         lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 1 : 2);
@@ -154,7 +213,11 @@ void LightsOut::RelightTable() {
   }
 }
 
+// Evaluate if an index is lit or not
 bool LightsOut::IsLit(int row, int col) {
+  if (row < 0 || row >= nRows || col < 0 || col >= nCols) {
+    return false;
+  }
   bool isLit = pressedArr[row][col];
   if (row > 0)
     isLit = isLit != pressedArr[row - 1][col];
