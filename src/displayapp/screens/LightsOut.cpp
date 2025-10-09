@@ -109,7 +109,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_set_style_local_bg_opa(btnBoardSize, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_90);
   lv_obj_set_style_local_bg_color(btnBoardSize, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
   lblBoardSize = lv_label_create(btnBoardSize, nullptr);
-  lv_label_set_text_fmt(lblBoardSize, "%i x %i", nRows, nCols);
+  lv_label_set_text_fmt(lblBoardSize, "%i x %i", nCols, nRows);
   lv_obj_set_event_cb(btnBoardSize, EventHandler);
   lv_obj_set_hidden(btnBoardSize, true);
 
@@ -170,9 +170,9 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
       nCols++;
       nRows++;
     } else {
-      if (nRows >= nCols + 3)
+      if (nCols >= nRows + 3)
         return;
-      nRows++;
+      nCols++;
     }
     lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_RELEASED);
     if (std::max(nRows, nCols) >= 9) {
@@ -186,9 +186,9 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
       nCols--;
       nRows--;
     } else {
-      if (nRows <= nCols - 3)
+      if (nCols <= nRows - 3)
         return;
-      nRows--;
+      nCols--;
     }
     lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_RELEASED);
     if (std::min(nRows, nCols) <= 3) {
@@ -203,7 +203,7 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
     GenerateGame();
     RestyleTable();
     RelightTable();
-    lv_label_set_text_fmt(lblBoardSize, "%i x %i", nRows, nCols);
+    lv_label_set_text_fmt(lblBoardSize, "%i x %i", nCols, nRows);
     return;
   }
   // Handle main table click
