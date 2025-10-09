@@ -101,7 +101,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_set_event_cb(btnSizeIncrease, EventHandler);
   lv_obj_set_hidden(btnSizeIncrease, true);
 
-  // "Button" which shows current board size (button since it can be long clicked to regenerate board)
+  // Button which shows current board size (button since it can be long clicked to regenerate board)
   btnBoardSize = lv_btn_create(lv_scr_act(), nullptr);
   btnBoardSize->user_data = this;
   lv_obj_set_size(btnBoardSize, 86, 60);
@@ -227,16 +227,16 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
         state = State::Won;
       }
     }
+    else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
+      ShowMenu();
+      state = State::InMenu;
+    }
     else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
       solnViewMode = false;
       HideWin();
       GenerateGame();
       RelightTable();
       state = State::Playing;
-    }
-    else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
-      ShowMenu();
-      state = State::InMenu;
     }
   }
 }
