@@ -14,12 +14,13 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
 
   nRows = 5;
   nCols = 5;
-  hintViewMode = false;
+  solnViewMode = false;
   state = State::Playing;
 
   lightDisplay = lv_table_create(lv_scr_act(), nullptr);
   // Table sizing and positioning is handled in RestyleTable() to account for changing table sizes
 
+  // Yellow for lit buttons
   lv_style_init(&styleActive);
   lv_style_set_bg_color(&styleActive, LV_STATE_DEFAULT, LV_COLOR_MAKE(0xFF, 0xFF, 0x00));
   lv_style_set_bg_opa(&styleActive, LV_STATE_DEFAULT, LV_OPA_COVER);
@@ -27,6 +28,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_style_set_border_color(&styleActive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL1, &styleActive);
 
+  // Brown for unlit buttons
   lv_style_init(&styleInactive);
   lv_style_set_bg_color(&styleInactive, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x40, 0x30, 0x00));
   lv_style_set_bg_opa(&styleInactive, LV_STATE_DEFAULT, LV_OPA_COVER);
@@ -34,20 +36,23 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_style_set_border_color(&styleInactive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL2, &styleInactive);
 
-  lv_style_init(&styleHintActive);
-  lv_style_set_bg_color(&styleHintActive, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x00, 0x80, 0xFF));
-  lv_style_set_bg_opa(&styleHintActive, LV_STATE_DEFAULT, LV_OPA_COVER);
-  lv_style_set_border_width(&styleHintActive, LV_STATE_DEFAULT, 1);
-  lv_style_set_border_color(&styleHintActive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
-  lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL3, &styleHintActive);
+  // Blue for lit buttons that need to be pressed during solution mode
+  lv_style_init(&styleSolnActive);
+  lv_style_set_bg_color(&styleSolnActive, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x00, 0x80, 0xFF));
+  lv_style_set_bg_opa(&styleSolnActive, LV_STATE_DEFAULT, LV_OPA_COVER);
+  lv_style_set_border_width(&styleSolnActive, LV_STATE_DEFAULT, 1);
+  lv_style_set_border_color(&styleSolnActive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
+  lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL3, &styleSolnActive);
 
-  lv_style_init(&styleHintInactive);
-  lv_style_set_bg_color(&styleHintInactive, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x00, 0x20, 0x40));
-  lv_style_set_bg_opa(&styleHintInactive, LV_STATE_DEFAULT, LV_OPA_COVER);
-  lv_style_set_border_width(&styleHintInactive, LV_STATE_DEFAULT, 1);
-  lv_style_set_border_color(&styleHintInactive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
-  lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL4, &styleHintInactive);
+  // Dark blue for unlit buttons that need to be pressed during solution mode
+  lv_style_init(&styleSolnInactive);
+  lv_style_set_bg_color(&styleSolnInactive, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x00, 0x20, 0x40));
+  lv_style_set_bg_opa(&styleSolnInactive, LV_STATE_DEFAULT, LV_OPA_COVER);
+  lv_style_set_border_width(&styleSolnInactive, LV_STATE_DEFAULT, 1);
+  lv_style_set_border_color(&styleSolnInactive, LV_STATE_DEFAULT, LV_COLOR_BLACK);
+  lv_obj_add_style(lightDisplay, LV_TABLE_PART_CELL4, &styleSolnInactive);
 
+  // Close menu button
   btnCloseMenu = lv_btn_create(lv_scr_act(), nullptr);
   btnCloseMenu->user_data = this;
   lv_obj_set_size(btnCloseMenu, 76, 60);
@@ -58,16 +63,18 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_set_event_cb(btnCloseMenu, EventHandler);
   lv_obj_set_hidden(btnCloseMenu, true);
 
-  btnToggleHint = lv_btn_create(lv_scr_act(), nullptr);
-  btnToggleHint->user_data = this;
-  lv_obj_set_size(btnToggleHint, 76, 60);
-  lv_obj_align(btnToggleHint, lv_scr_act(), LV_ALIGN_IN_TOP_RIGHT, 0, 0);
-  lv_obj_set_style_local_bg_opa(btnToggleHint, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
-  lv_obj_t* lblHint = lv_label_create(btnToggleHint, nullptr);
-  lv_label_set_text_static(lblHint, "?");
-  lv_obj_set_event_cb(btnToggleHint, EventHandler);
-  lv_obj_set_hidden(btnToggleHint, true);
+  // Toggle solution mode button
+  btnToggleSolution = lv_btn_create(lv_scr_act(), nullptr);
+  btnToggleSolution->user_data = this;
+  lv_obj_set_size(btnToggleSolution, 76, 60);
+  lv_obj_align(btnToggleSolution, lv_scr_act(), LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  lv_obj_set_style_local_bg_opa(btnToggleSolution, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_70);
+  lv_obj_t* lblSolution = lv_label_create(btnToggleSolution, nullptr);
+  lv_label_set_text_static(lblSolution, "?");
+  lv_obj_set_event_cb(btnToggleSolution, EventHandler);
+  lv_obj_set_hidden(btnToggleSolution, true);
 
+  // Button to decrease board size
   btnSizeDecrease = lv_btn_create(lv_scr_act(), nullptr);
   btnSizeDecrease->user_data = this;
   lv_obj_set_size(btnSizeDecrease, 70, 60);
@@ -79,6 +86,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_set_event_cb(btnSizeDecrease, EventHandler);
   lv_obj_set_hidden(btnSizeDecrease, true);
 
+  // Button to increase board size
   btnSizeIncrease = lv_btn_create(lv_scr_act(), nullptr);
   btnSizeIncrease->user_data = this;
   lv_obj_set_size(btnSizeIncrease, 70, 60);
@@ -90,6 +98,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_set_event_cb(btnSizeIncrease, EventHandler);
   lv_obj_set_hidden(btnSizeIncrease, true);
 
+  // "Button" which shows current board size (button since it can be long clicked to regenerate board)
   btnBoardSize = lv_btn_create(lv_scr_act(), nullptr);
   btnBoardSize->user_data = this;
   lv_obj_set_size(btnBoardSize, 86, 60);
@@ -101,6 +110,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_set_event_cb(btnBoardSize, EventHandler);
   lv_obj_set_hidden(btnBoardSize, true);
 
+  // Background for the win screen
   winScreenBG = lv_obj_create(lv_scr_act(), nullptr);
   lv_obj_set_size(winScreenBG, LV_HOR_RES * 8 / 10, LV_VER_RES * 8 / 10);
   lv_obj_align(winScreenBG, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
@@ -112,7 +122,6 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lblWinScreenMoveCount = lv_label_create(winScreenBG, nullptr);
   lv_obj_set_hidden(winScreenBG, true);
 
-
   GenerateGame();
   RestyleTable();
   RelightTable();
@@ -123,8 +132,8 @@ LightsOut::~LightsOut() {
   lv_obj_clean(lv_scr_act());
   lv_style_reset(&styleActive);
   lv_style_reset(&styleInactive);
-  lv_style_reset(&styleHintActive);
-  lv_style_reset(&styleHintInactive);
+  lv_style_reset(&styleSolnActive);
+  lv_style_reset(&styleSolnInactive);
 }
 
 bool LightsOut::OnButtonPushed() {
@@ -144,7 +153,6 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
     const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
     pressedArr[tappedCol][tappedRow] = !pressedArr[tappedCol][tappedRow];
     usedPresses++;
-
     RelightTable();
     int numLit = 0;
     for (int row = 0; row < nRows; row++) {
@@ -159,7 +167,7 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
     return true;
   }
   if (event == TouchEvents::Tap && state == State::Won) {
-    hintViewMode = false;
+    solnViewMode = false;
     HideWin();
     GenerateGame();
     RelightTable();
@@ -181,15 +189,15 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
     state = State::Playing;
     return;
   }
-  // Toggle hint mode
-  if (event == LV_EVENT_CLICKED && object == btnToggleHint) {
-    hintViewMode = !hintViewMode;
+  // Toggle solution view mode
+  if (event == LV_EVENT_CLICKED && object == btnToggleSolution) {
+    solnViewMode = !solnViewMode;
     RelightTable();
     return;
   }
   // All actions which can require the game to be regenerated
   bool refreshGame = false;
-  // Board size increase. Long click to only increase columns (up to a maximum of cols+3).
+  // Board size increase. Long click to only increase columns (up to a maximum of rows+3).
   if ((event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED) && object == btnSizeIncrease) {
     if (event == LV_EVENT_SHORT_CLICKED) {
       nCols++;
@@ -205,7 +213,7 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
     }
     refreshGame = true;
   }
-  // Board size decrease. Long click to only decrease columns (down to a minimum of cols-3).
+  // Board size decrease. Long click to only decrease columns (down to a minimum of rows-3).
   if ((event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED) && object == btnSizeDecrease) {
     if (event == LV_EVENT_SHORT_CLICKED) {
       nCols--;
@@ -279,7 +287,7 @@ void LightsOut::RestyleTable() {
 void LightsOut::RelightTable() {
   for (int row = 0; row < nRows; row++) {
     for (int col = 0; col < nCols; col++) {
-      if (hintViewMode && pressedArr[col][row])
+      if (solnViewMode && pressedArr[col][row])
         lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 3 : 4);
       else
         lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 1 : 2);
@@ -306,7 +314,6 @@ bool LightsOut::IsLit(int row, int col) {
 
 
 void LightsOut::ShowWin() {
-  // TODO: Text (+low opacity bg)
   lv_label_set_text_fmt(lblWinScreenMoveCount, "Used %i moves", usedPresses);
   lv_obj_align(lblWinScreenMoveCount, nullptr, LV_ALIGN_CENTER, 0, 20);
   lv_obj_set_hidden(winScreenBG, false);
@@ -320,7 +327,7 @@ void LightsOut::ShowMenu() {
   lv_obj_set_hidden(btnSizeIncrease, false);
   lv_obj_set_hidden(btnSizeDecrease, false);
   lv_obj_set_hidden(btnCloseMenu, false);
-  lv_obj_set_hidden(btnToggleHint, false);
+  lv_obj_set_hidden(btnToggleSolution, false);
   lv_obj_set_hidden(btnBoardSize, false);
 }
 
@@ -328,6 +335,6 @@ void LightsOut::HideMenu() {
   lv_obj_set_hidden(btnSizeIncrease, true);
   lv_obj_set_hidden(btnSizeDecrease, true);
   lv_obj_set_hidden(btnCloseMenu, true);
-  lv_obj_set_hidden(btnToggleHint, true);
+  lv_obj_set_hidden(btnToggleSolution, true);
   lv_obj_set_hidden(btnBoardSize, true);
 }

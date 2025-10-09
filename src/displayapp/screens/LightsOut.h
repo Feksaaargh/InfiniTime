@@ -49,17 +49,17 @@ namespace Pinetime {
         std::vector<std::vector<bool>> pressedArr;
 
         unsigned int usedPresses;
-        bool hintViewMode;
+        bool solnViewMode;
 
         lv_style_t styleActive;
         lv_style_t styleInactive;
-        lv_style_t styleHintActive;
-        lv_style_t styleHintInactive;
+        lv_style_t styleSolnActive;
+        lv_style_t styleSolnInactive;
         lv_obj_t* lightDisplay;
         lv_obj_t* btnSizeIncrease;
         lv_obj_t* btnSizeDecrease;
         lv_obj_t* btnCloseMenu;
-        lv_obj_t* btnToggleHint;
+        lv_obj_t* btnToggleSolution;
         lv_obj_t* btnBoardSize;
         lv_obj_t* lblBoardSize;
         lv_obj_t* winScreenBG;
