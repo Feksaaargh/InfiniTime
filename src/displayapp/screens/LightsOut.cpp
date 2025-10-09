@@ -147,6 +147,7 @@ bool LightsOut::OnButtonPushed() {
 }
 
 bool LightsOut::OnTouchEvent(TouchEvents event) {
+  // TODO: Fix phantom touches when exiting menu or entering app
   if (event == TouchEvents::Tap && state == State::Playing) {
     lv_indev_data_t tapData;
     lvgl.GetTouchPadInfo(&tapData);
