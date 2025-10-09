@@ -38,7 +38,7 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
 
   nRows = 3;
   nCols = 3;
-  solutionViewMode = false;
+  solutionViewMode = true;
   state = State::Playing;
 
   GenerateGame();
@@ -71,7 +71,14 @@ bool LightsOut::OnTouchEvent(TouchEvents event) {
     const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
     pressedArr[tappedRow][tappedCol] = !pressedArr[tappedRow][tappedCol];
     usedPresses++;
-    int numLit = RelightTable();
+
+    RelightTable();
+    int numLit = 0;
+    for (int row = 0; row < nRows; row++) {
+      for (int col = 0; col < nCols; col++) {
+        numLit += (int)IsLit(row, col);
+      }
+    }
     if (numLit == 0) {
       ShowWin();
       state = State::Won;
@@ -98,25 +105,21 @@ void LightsOut::GenerateGame() {
   for (int col = 0; col < nCols; col++) {
     pressedArr[col] = std::vector<bool>(nRows);
   }
+  // Require a game to have at least 1/5 pressed buttons and at least one lit tile
   int totalPressed = 0;
-  for (int row = 0; row < nRows; row++) {
-    for (int col = 0; col < nCols; col++) {
-      pressedArr[row][col] = (bool) (std::rand() & 1);
-      totalPressed += (int) pressedArr[row][col];
+  bool anyLit = false;
+  while (totalPressed < nRows * nCols / 5 || !anyLit) {
+    totalPressed = 0;
+    for (int row = 0; row < nRows; row++) {
+      for (int col = 0; col < nCols; col++) {
+        pressedArr[row][col] = (bool) (std::rand() & 1);
+        totalPressed += (int)pressedArr[row][col];
+      }
     }
-  }
-  // Prevent too few (<20%) buttons being pressed
-  while (totalPressed < nRows * nCols / 5) {
-    int chosenLightIdx = std::rand() % (nRows * nCols - totalPressed);
-    for (int row = 0; row < nRows && chosenLightIdx >= 0; row++) {
-      for (int col = 0; col < nCols && chosenLightIdx >= 0; col++) {
-        if (!pressedArr[row][col]) {
-          if (chosenLightIdx == 0) {
-            pressedArr[row][col] = true;
-            totalPressed++;
-          }
-          chosenLightIdx--;
-        }
+    anyLit = false;
+    for (int row = 0; row < nRows && !anyLit; row++) {
+      for (int col = 0; col < nCols && !anyLit; col++) {
+        anyLit = IsLit(row, col);
       }
     }
   }
@@ -140,36 +143,36 @@ void LightsOut::RestyleTable() {
 }
 
 // Reevaluate all the lights on the table
-int LightsOut::RelightTable() {
-  int nLitLights = 0;
+void LightsOut::RelightTable() {
   for (int row = 0; row < nRows; row++) {
     for (int col = 0; col < nCols; col++) {
-      bool isLit = pressedArr[row][col];
-      if (row > 0)
-        isLit = isLit != pressedArr[row - 1][col];
-      if (row < nRows - 1)
-        isLit = isLit != pressedArr[row + 1][col];
-      if (col > 0)
-        isLit = isLit != pressedArr[row][col - 1];
-      if (col < nCols - 1)
-        isLit = isLit != pressedArr[row][col + 1];
       if (solutionViewMode && pressedArr[row][col])
-        lv_table_set_cell_type(lightDisplay, row, col, isLit ? 3 : 4);
+        lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 3 : 4);
       else
-        lv_table_set_cell_type(lightDisplay, row, col, isLit ? 1 : 2);
-      nLitLights += (int)isLit;
+        lv_table_set_cell_type(lightDisplay, row, col, IsLit(row, col) ? 1 : 2);
     }
   }
-  return nLitLights;
 }
 
+bool LightsOut::IsLit(int row, int col) {
+  bool isLit = pressedArr[row][col];
+  if (row > 0)
+    isLit = isLit != pressedArr[row - 1][col];
+  if (row < nRows - 1)
+    isLit = isLit != pressedArr[row + 1][col];
+  if (col > 0)
+    isLit = isLit != pressedArr[row][col - 1];
+  if (col < nCols - 1)
+    isLit = isLit != pressedArr[row][col + 1];
+  return isLit;
+}
+
+
 void LightsOut::ShowWin() {
-  state = State::Won;
   // TODO: Text (+low opacity bg)
 }
 
 void LightsOut::HideWin() {
-  state = State::Playing;
 }
 
 void LightsOut::OpenMenu() {

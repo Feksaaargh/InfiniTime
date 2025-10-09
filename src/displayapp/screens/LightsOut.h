@@ -31,8 +31,10 @@ namespace Pinetime {
         void RestyleTable();
 
         /// Evaluate the pressed array and populate the main table with the updated states
-        /// @return The number of lit lights
-        int RelightTable();
+        void RelightTable();
+
+        /// Return if a specific tile is lit or not
+        bool IsLit(int row, int col);
 
         void ShowWin();
         void HideWin();
