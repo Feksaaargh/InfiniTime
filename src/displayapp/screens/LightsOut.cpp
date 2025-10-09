@@ -11,6 +11,7 @@ namespace {
 
 LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask) : lvgl {lvgl}, wakeLock {systemTask} {
   wakeLock.Lock();
+  std::srand(xTaskGetTickCount());
 
   nRows = 5;
   nCols = 5;
