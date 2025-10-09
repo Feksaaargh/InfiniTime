@@ -3,59 +3,70 @@
 #include "displayapp/apps/Apps.h"
 #include "displayapp/screens/Screen.h"
 #include "displayapp/Controllers.h"
+#include "displayapp/LittleVgl.h"
+#include "systemtask/WakeLock.h"
 #include "Symbols.h"
 
 #include <vector>
 #include <cstdlib>
 #include <cstdio>
+#include <cstdint>
 
 namespace Pinetime {
   namespace Applications {
     namespace Screens {
       class LightsOut : public Screen {
       public:
-        LightsOut(Components::LittleVgl&);
+        LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask);
         ~LightsOut() override;
 
-        // bool OnButtonPushed() override;
-
-        // bool OnTouchEvent(uint16_t x, uint16_t y) override;
+        bool OnButtonPushed() override;
+        bool OnTouchEvent(TouchEvents event) override;
 
       private:
-        /// Reevaluate all table styles related to size
-        void RealignTable();
-
-        /// Evaluate the pressed array and populate the main table with the updated states
-        void RelightTable();
-
-        /// Check if user won (pressedArr is all false), and congratulate them if so
-        void ProcessWin();
-
         /// Populate the pressedArr with random values, guaranteeing at least some buttons to be pressed
         void GenerateGame();
+
+        /// Reevaluate table styles related to grid size
+        void RestyleTable();
+
+        /// Evaluate the pressed array and populate the main table with the updated states
+        /// @return The number of lit lights
+        int RelightTable();
+
+        void ShowWin();
+        void HideWin();
+
+        void OpenMenu();
+        void CloseMenu();
 
         int nRows;
         int nCols;
         std::vector<std::vector<bool>> pressedArr;
 
-        unsigned int minPresses;
         unsigned int usedPresses;
+        bool solutionViewMode;
 
         lv_style_t styleActive;
         lv_style_t styleInactive;
+        lv_style_t styleHintActive;
+        lv_style_t styleHintInactive;
         lv_obj_t* lightDisplay;
 
         Components::LittleVgl& lvgl;
+        Pinetime::System::WakeLock wakeLock;
 
+        enum class State { Playing, Won, InMenu } state;
       };
     }
-    
+
     template <>
     struct AppTraits<Apps::LightsOut> {
       static constexpr Apps app = Apps::LightsOut;
-      static constexpr const char* icon = "L";  // TODO: Lightbulb icon
+      static constexpr const char* icon = "L"; // TODO: Lightbulb icon
+
       static Screens::Screen* Create(AppControllers& controllers) {
-        return new Screens::LightsOut(controllers.lvgl);
+        return new Screens::LightsOut(controllers.lvgl, *controllers.systemTask);
       }
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
