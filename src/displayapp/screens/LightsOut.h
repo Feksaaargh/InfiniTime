@@ -22,7 +22,7 @@ namespace Pinetime {
 
         bool OnButtonPushed() override;
 
-        void UpdateSelected(lv_obj_t* object, lv_event_t event);
+        void UpdateSelected(const lv_obj_t* object, lv_event_t event);
 
       private:
         /// Populate the pressedArr with random values, guaranteeing at least some buttons to be pressed
@@ -39,7 +39,6 @@ namespace Pinetime {
 
         void ShowWin();
         void ShowLoss();
-        void HideWin();
 
         void ShowMenu();
         void HideMenu();

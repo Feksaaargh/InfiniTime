@@ -147,7 +147,7 @@ bool LightsOut::OnButtonPushed() {
   return false;
 }
 
-void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
+void LightsOut::UpdateSelected(const lv_obj_t* object, lv_event_t event) {
   // Close menu
   if (event == LV_EVENT_CLICKED && object == btnCloseMenu) {
     HideMenu();
