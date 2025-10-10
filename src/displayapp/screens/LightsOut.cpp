@@ -119,11 +119,9 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
   lv_obj_align(winScreenBG, lv_scr_act(), LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_local_bg_opa(winScreenBG, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_OPA_80);
   lv_obj_set_style_local_bg_color(winScreenBG, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
-  lv_obj_t* lblWinMessage = lv_label_create(winScreenBG, nullptr);
-  lv_label_set_text_static(lblWinMessage, "You win!");
-  lv_obj_align(lblWinMessage, nullptr, LV_ALIGN_CENTER, 0, -20);
-  lblWinScreenMoveCount = lv_label_create(winScreenBG, nullptr);
+  lblWinScreenText = lv_label_create(winScreenBG, nullptr);
   lv_obj_set_state(winScreenBG, LV_STATE_DISABLED);
+  lv_label_set_align(lblWinScreenText, LV_LABEL_ALIGN_CENTER);
   lv_obj_set_hidden(winScreenBG, true);
 
   GenerateGame();
@@ -225,6 +223,9 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
       if (numLit == 0) {
         ShowWin();
         state = State::Won;
+      } else if (numLit == nRows * nCols) {
+        ShowLoss();
+        state = State::Lost;
       }
     }
     else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
@@ -233,9 +234,14 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
     }
     else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
       solnViewMode = false;
-      HideWin();
+      lv_obj_set_hidden(winScreenBG, true);
       GenerateGame();
       RelightTable();
+      state = State::Playing;
+    }
+    else if (event == LV_EVENT_SHORT_CLICKED && state == State::Lost) {
+      solnViewMode = false;
+      lv_obj_set_hidden(winScreenBG, true);
       state = State::Playing;
     }
   }
@@ -315,15 +321,18 @@ bool LightsOut::IsLit(int row, int col) {
   return isLit;
 }
 
-
 void LightsOut::ShowWin() {
-  lv_label_set_text_fmt(lblWinScreenMoveCount, "Moves: %i", usedPresses);
-  lv_obj_align(lblWinScreenMoveCount, nullptr, LV_ALIGN_CENTER, 0, 20);
+  lv_label_set_text_fmt(lblWinScreenText, "You win!\n\nMoves: %i", usedPresses);
+  lv_obj_align(lblWinScreenText, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(winScreenBG, false);
 }
 
-void LightsOut::HideWin() {
-  lv_obj_set_hidden(winScreenBG, true);
+//  |  ||
+//  || |_
+void LightsOut::ShowLoss() {
+  lv_label_set_text_fmt(lblWinScreenText, "Good job!\n\nNow try turning\nthe lights off\ninstead!", usedPresses);
+  lv_obj_align(lblWinScreenText, nullptr, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_hidden(winScreenBG, false);
 }
 
 void LightsOut::ShowMenu() {

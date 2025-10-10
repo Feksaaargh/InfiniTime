@@ -38,6 +38,7 @@ namespace Pinetime {
         bool IsLit(int row, int col);
 
         void ShowWin();
+        void ShowLoss();
         void HideWin();
 
         void ShowMenu();
@@ -62,12 +63,12 @@ namespace Pinetime {
         lv_obj_t* btnBoardSize;
         lv_obj_t* lblBoardSize;
         lv_obj_t* winScreenBG;
-        lv_obj_t* lblWinScreenMoveCount;
+        lv_obj_t* lblWinScreenText;
 
         Components::LittleVgl& lvgl;
         Pinetime::System::WakeLock wakeLock;
 
-        enum class State { Playing, Won, InMenu } state;
+        enum class State { Playing, Won, Lost, InMenu } state;
       };
     }
 
