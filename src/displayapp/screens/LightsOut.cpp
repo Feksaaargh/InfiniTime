@@ -217,7 +217,7 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
       int numLit = 0;
       for (int row = 0; row < nRows; row++) {
         for (int col = 0; col < nCols; col++) {
-          numLit += (int)IsLit(row, col);
+          numLit += (int) IsLit(row, col);
         }
       }
       if (numLit == 0) {
@@ -227,19 +227,16 @@ void LightsOut::UpdateSelected(lv_obj_t* object, lv_event_t event) {
         ShowLoss();
         state = State::Lost;
       }
-    }
-    else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
+    } else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
       ShowMenu();
       state = State::InMenu;
-    }
-    else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
+    } else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
       solnViewMode = false;
       lv_obj_set_hidden(winScreenBG, true);
       GenerateGame();
       RelightTable();
       state = State::Playing;
-    }
-    else if (event == LV_EVENT_SHORT_CLICKED && state == State::Lost) {
+    } else if (event == LV_EVENT_SHORT_CLICKED && state == State::Lost) {
       solnViewMode = false;
       lv_obj_set_hidden(winScreenBG, true);
       state = State::Playing;
@@ -280,11 +277,11 @@ void LightsOut::RestyleTable() {
   lv_table_set_col_cnt(lightDisplay, nCols);
   for (int col = 0; col < nCols; col++) {
     // This approach for width fills out the screen width more correctly than simply LV_HOR_RES / nCols.
-    lv_table_set_col_width(lightDisplay, col, (LV_HOR_RES * col / nCols) - (LV_HOR_RES * (col-1) / nCols));
+    lv_table_set_col_width(lightDisplay, col, (LV_HOR_RES * col / nCols) - (LV_HOR_RES * (col - 1) / nCols));
   }
   // Modified from https://docs.lvgl.io/7.11/widgets/table.html#simple-table
-  lv_obj_set_height(lightDisplay, LV_VER_RES);  // Needed else part of the table may be cut off
-  const lv_table_ext_t* ext = (lv_table_ext_t*)lv_obj_get_ext_attr(lightDisplay);
+  lv_obj_set_height(lightDisplay, LV_VER_RES); // Needed else part of the table may be cut off
+  const lv_table_ext_t* ext = (lv_table_ext_t*) lv_obj_get_ext_attr(lightDisplay);
   for (int row = 0; row < nRows; row++) {
     // This approach for height fills out the screen height more correctly than simply LV_VER_RES / nRows.
     ext->row_h[row] = (LV_VER_RES * row / nRows) - (LV_VER_RES * (row - 1) / nRows);
