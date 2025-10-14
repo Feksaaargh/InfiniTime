@@ -139,106 +139,41 @@ LightsOut::~LightsOut() {
 bool LightsOut::OnButtonPushed() {
   if (state == State::InMenu) {
     HideMenu();
-    state = State::Playing;
     return true;
   }
   return false;
 }
 
 void LightsOut::UpdateSelected(const lv_obj_t* object, lv_event_t event) {
+  // Handle main table click
+  if (object == lightDisplay) {
+    LightDisplayEvent(event);
+  }
   // Close menu
-  if (event == LV_EVENT_CLICKED && object == btnCloseMenu) {
+  if (object == btnCloseMenu && event == LV_EVENT_CLICKED) {
     HideMenu();
-    state = State::Playing;
     return;
   }
   // Toggle solution view mode
-  if (event == LV_EVENT_CLICKED && object == btnToggleSolution) {
+  if (object == btnToggleSolution && event == LV_EVENT_CLICKED) {
     solnViewMode = !solnViewMode;
     RelightTable();
     return;
   }
-  // All actions which can require the game to be regenerated
-  bool refreshGame = false;
-  // Board size increase. Long click to only increase columns (up to a maximum of rows+3).
-  if ((event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED) && object == btnSizeIncrease) {
-    if (event == LV_EVENT_SHORT_CLICKED) {
-      nCols++;
-      nRows++;
-    } else {
-      if (nCols >= nRows + 3)
-        return;
-      nCols++;
-    }
-    lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_RELEASED);
-    if (std::max(nRows, nCols) >= 9) {
-      lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_DISABLED);
-    }
-    refreshGame = true;
+  // Update size increase button
+  if (object == btnSizeIncrease) {
+    BtnSizeIncEvent(event);
   }
-  // Board size decrease. Long click to only decrease columns (down to a minimum of rows-3).
-  if ((event == LV_EVENT_SHORT_CLICKED || event == LV_EVENT_LONG_PRESSED) && object == btnSizeDecrease) {
-    if (event == LV_EVENT_SHORT_CLICKED) {
-      nCols--;
-      nRows--;
-    } else {
-      if (nCols <= nRows - 3)
-        return;
-      nCols--;
-    }
-    lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_RELEASED);
-    if (std::min(nRows, nCols) <= 3) {
-      lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_DISABLED);
-    }
-    refreshGame = true;
+  // Update size decrease button
+  if (object == btnSizeDecrease) {
+    BtnSizeDecEvent(event);
   }
-  if (event == LV_EVENT_LONG_PRESSED && object == btnBoardSize) {
-    refreshGame = true;
-  }
-  if (refreshGame) {
+  // Only update board state
+  if (object == btnBoardSize && event == LV_EVENT_LONG_PRESSED) {
     GenerateGame();
     RestyleTable();
     RelightTable();
     lv_label_set_text_fmt(lblBoardSize, "%i x %i", nCols, nRows);
-    return;
-  }
-  // Handle main table click
-  if (object == lightDisplay) {
-    if (event == LV_EVENT_SHORT_CLICKED && state == State::Playing) {
-      lv_indev_data_t tapData;
-      lvgl.GetTouchPadInfo(&tapData);
-      const uint16_t tappedCol = tapData.point.x * nCols / LV_HOR_RES;
-      const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
-      pressedArr[tappedCol][tappedRow] = !pressedArr[tappedCol][tappedRow];
-      usedPresses++;
-      RelightTable();
-      int numLit = 0;
-      for (int row = 0; row < nRows; row++) {
-        for (int col = 0; col < nCols; col++) {
-          numLit += (int) IsLit(row, col);
-        }
-      }
-      if (numLit == 0) {
-        ShowWin();
-        state = State::Won;
-      } else if (numLit == nRows * nCols) {
-        ShowLoss();
-        state = State::Lost;
-      }
-    } else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
-      ShowMenu();
-      state = State::InMenu;
-    } else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
-      solnViewMode = false;
-      lv_obj_set_hidden(winScreenBG, true);
-      GenerateGame();
-      RelightTable();
-      state = State::Playing;
-    } else if (event == LV_EVENT_SHORT_CLICKED && state == State::Lost) {
-      solnViewMode = false;
-      lv_obj_set_hidden(winScreenBG, true);
-      state = State::Playing;
-    }
   }
 }
 
@@ -316,18 +251,98 @@ bool LightsOut::IsLit(int row, int col) {
   return isLit;
 }
 
+// Click to toggle lights, long click to open menu, and click on win/loss screen to continue to game.
+void LightsOut::LightDisplayEvent(lv_event_t event) {
+  if (event == LV_EVENT_SHORT_CLICKED && state == State::Playing) {
+    // Toggle lights
+    lv_indev_data_t tapData;
+    lvgl.GetTouchPadInfo(&tapData);
+    const uint16_t tappedCol = tapData.point.x * nCols / LV_HOR_RES;
+    const uint16_t tappedRow = tapData.point.y * nRows / LV_VER_RES;
+    pressedArr[tappedCol][tappedRow] = !pressedArr[tappedCol][tappedRow];
+    usedPresses++;
+    RelightTable();
+    int numLit = 0;
+    for (int row = 0; row < nRows; row++) {
+      for (int col = 0; col < nCols; col++) {
+        numLit += (int) IsLit(row, col);
+      }
+    }
+    if (numLit == 0) {
+      ShowWin();
+    } else if (numLit == nRows * nCols) {
+      ShowLoss();
+    }
+  } else if (event == LV_EVENT_LONG_PRESSED && state == State::Playing) {
+    ShowMenu();
+  } else if (event == LV_EVENT_SHORT_CLICKED && state == State::Won) {
+    solnViewMode = false;
+    lv_obj_set_hidden(winScreenBG, true);
+    GenerateGame();
+    RelightTable();
+    state = State::Playing;
+  } else if (event == LV_EVENT_SHORT_CLICKED && state == State::Lost) {
+    lv_obj_set_hidden(winScreenBG, true);
+    state = State::Playing;
+  }
+}
+
+// Increase size up to a maximum of 9. Long click to only increase column count to a maximum of min(9, nRows+3).
+void LightsOut::BtnSizeIncEvent(lv_event_t event) {
+  if (event == LV_EVENT_SHORT_CLICKED) {
+    nCols++;
+    nRows++;
+  } else if (event == LV_EVENT_LONG_PRESSED) {
+    if (nCols >= nRows + 3)
+      return;
+    nCols++;
+  } else {
+    return;
+  }
+  lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_RELEASED);
+  if (std::max(nRows, nCols) >= 9) {
+    lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_DISABLED);
+  }
+  GenerateGame();
+  RestyleTable();
+  RelightTable();
+  lv_label_set_text_fmt(lblBoardSize, "%i x %i", nCols, nRows);
+}
+
+// Decrease size down to a minimum of 3. Long click to only decrease column count to a minimum of max(3, nRows-3).
+void LightsOut::BtnSizeDecEvent(lv_event_t event) {
+  if (event == LV_EVENT_SHORT_CLICKED) {
+    nCols--;
+    nRows--;
+  } else if (event == LV_EVENT_LONG_PRESSED) {
+    if (nCols <= nRows - 3)
+      return;
+    nCols--;
+  } else {
+    return;
+  }
+  lv_btn_set_state(btnSizeIncrease, LV_BTN_STATE_RELEASED);
+  if (std::min(nRows, nCols) <= 3) {
+    lv_btn_set_state(btnSizeDecrease, LV_BTN_STATE_DISABLED);
+  }
+  GenerateGame();
+  RestyleTable();
+  RelightTable();
+  lv_label_set_text_fmt(lblBoardSize, "%i x %i", nCols, nRows);
+}
+
 void LightsOut::ShowWin() {
   lv_label_set_text_fmt(lblWinScreenText, "You win!\n\nMoves: %i", usedPresses);
   lv_obj_align(lblWinScreenText, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(winScreenBG, false);
+  state = State::Won;
 }
 
-//  |  ||
-//  || |_
 void LightsOut::ShowLoss() {
   lv_label_set_text_fmt(lblWinScreenText, "Good job!\n\nNow try turning\nthe lights off\ninstead!", usedPresses);
   lv_obj_align(lblWinScreenText, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(winScreenBG, false);
+  state = State::Lost;
 }
 
 void LightsOut::ShowMenu() {
@@ -336,6 +351,7 @@ void LightsOut::ShowMenu() {
   lv_obj_set_hidden(btnCloseMenu, false);
   lv_obj_set_hidden(btnToggleSolution, false);
   lv_obj_set_hidden(btnBoardSize, false);
+  state = State::InMenu;
 }
 
 void LightsOut::HideMenu() {
@@ -344,4 +360,5 @@ void LightsOut::HideMenu() {
   lv_obj_set_hidden(btnCloseMenu, true);
   lv_obj_set_hidden(btnToggleSolution, true);
   lv_obj_set_hidden(btnBoardSize, true);
+  state = State::Playing;
 }

@@ -37,6 +37,10 @@ namespace Pinetime {
         /// Check if a specific tile is lit or not
         bool IsLit(int row, int col);
 
+        void LightDisplayEvent(lv_event_t event);
+        void BtnSizeIncEvent(lv_event_t event);
+        void BtnSizeDecEvent(lv_event_t event);
+
         void ShowWin();
         void ShowLoss();
 
