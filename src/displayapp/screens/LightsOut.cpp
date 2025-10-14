@@ -9,8 +9,7 @@ namespace {
   }
 }
 
-LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask) : lvgl {lvgl}, wakeLock {systemTask} {
-  wakeLock.Lock();
+LightsOut::LightsOut(Components::LittleVgl& lvgl) : lvgl {lvgl} {
   std::srand(xTaskGetTickCount());
 
   nRows = 5;
@@ -130,7 +129,6 @@ LightsOut::LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask
 }
 
 LightsOut::~LightsOut() {
-  wakeLock.Release();
   lv_obj_clean(lv_scr_act());
   lv_style_reset(&styleActive);
   lv_style_reset(&styleInactive);

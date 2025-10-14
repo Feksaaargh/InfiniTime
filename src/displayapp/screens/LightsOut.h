@@ -17,7 +17,7 @@ namespace Pinetime {
     namespace Screens {
       class LightsOut : public Screen {
       public:
-        LightsOut(Components::LittleVgl& lvgl, System::SystemTask& systemTask);
+        LightsOut(Components::LittleVgl& lvgl);
         ~LightsOut() override;
 
         bool OnButtonPushed() override;
@@ -65,7 +65,6 @@ namespace Pinetime {
         lv_obj_t* lblWinScreenText;
 
         Components::LittleVgl& lvgl;
-        Pinetime::System::WakeLock wakeLock;
 
         enum class State { Playing, Won, Lost, InMenu } state;
       };
@@ -77,7 +76,7 @@ namespace Pinetime {
       static constexpr const char* icon = Screens::Symbols::lightbulb;
 
       static Screens::Screen* Create(AppControllers& controllers) {
-        return new Screens::LightsOut(controllers.lvgl, *controllers.systemTask);
+        return new Screens::LightsOut(controllers.lvgl);
       }
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
