@@ -8,6 +8,7 @@
 #include <cstring>
 #include <vector>
 
+// Must include trailing slash
 #define WATCHFACE_IMAGES_BASE_PATH "F:/images_watchface/"
 
 namespace Pinetime {
@@ -21,17 +22,15 @@ namespace Pinetime {
         void Refresh() override;
 
       private:
-        int FindNextHighestImage();
+        void ShowError(const char* errorDesc, int errorNum) const;
 
         lv_obj_t* mainImage;
+        lv_obj_t* errorMessage;
         std::string imagePath;
 
-        // If inErrorState is set, filesystem reading failed during construction.
-        bool inErrorState;
-        // In minutes, for each day. Each timestamp is in range [0,1399]. Is sorted in ascending order.
-        std::vector<uint16_t> imageChangeTimestampsMins;
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>> currentTime;
 
+        lv_task_t* taskRefresh;
         Controllers::DateTime& dateTime;
         Controllers::FS& filesystem;
       };
