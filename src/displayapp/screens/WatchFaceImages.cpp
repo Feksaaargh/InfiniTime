@@ -63,9 +63,9 @@ void WatchFaceImages::Refresh() {
       continue;
     }
     // parse filename
-    const int time = std::atoi(itemInfo.name);
-    const int minutes = time % 100;
-    const int hours = time / 100;
+    const int timestamp = std::atoi(itemInfo.name);
+    const int minutes = timestamp % 100;
+    const int hours = timestamp / 100;
     if (minutes == 0 && hours == 0) {
       foundZeroBin = true;
     }
@@ -113,7 +113,7 @@ bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::
   lfs_dir_t imagesDirHandle = {0};
   retval = filesystem.DirOpen(WATCHFACE_IMAGES_BASE_PATH, &imagesDirHandle);
   if (retval < 0) {
-    printf("Failed to open\n");
+    printf("Failed to open: %i\n", retval);
     return false;
   }
 
@@ -123,10 +123,11 @@ bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::
     retval = filesystem.DirRead(&imagesDirHandle, &itemInfo);
     // If the read returns <0, an error occurred. If it returns 0, the end of the directory has been reached without finding 0000.bin.
     if (retval <= 0) {
-      printf("Failed to read\n");
+      printf("Failed to read: %i\n", retval);
       filesystem.DirClose(&imagesDirHandle);
       return false;
     }
+    printf("%s\n", itemInfo.name);
     if (strcmp(itemInfo.name, "0000.bin") == 0) {
       filesystem.DirClose(&imagesDirHandle);
       return true;
