@@ -28,7 +28,7 @@ void WatchFaceImages::Refresh() {
   int retval = 0;
   // Open the images directory safely
   lfs_dir_t imagesDirHandle = {0};
-  retval = filesystem.DirOpen(WATCHFACE_IMAGES_BASE_PATH, &imagesDirHandle);
+  retval = filesystem.DirOpen(&WATCHFACE_IMAGES_BASE_PATH[2], &imagesDirHandle);
   if (retval < 0) {
     ShowError("DIR OPEN", retval);
     return;
@@ -111,7 +111,7 @@ bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::
 
   // Open the images directory safely
   lfs_dir_t imagesDirHandle = {0};
-  retval = filesystem.DirOpen(WATCHFACE_IMAGES_BASE_PATH, &imagesDirHandle);
+  retval = filesystem.DirOpen(&WATCHFACE_IMAGES_BASE_PATH[2], &imagesDirHandle);
   if (retval < 0) {
     printf("Failed to open: %i\n", retval);
     return false;
