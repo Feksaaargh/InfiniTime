@@ -31,20 +31,21 @@ void WatchFaceImages::Refresh() {
     return;
   }
 
+  // Open config file
   int retval;
   std::string configLocation = &watchfaceImagesBasePath[2];
   configLocation += "config.txt";
-  lfs_file_t configFileHandle = {0};
+  lfs_file_t configFileHandle {};
   retval = filesystem.FileOpen(&configFileHandle, configLocation.c_str(), LFS_O_RDONLY);
   if (retval < 0) {
-    ShowError("CONFIG OPEN", retval);
+    DisplayError("CONFIG OPEN", retval);
     return;
   }
 
-  // Default distance is 1 higher than maximum possible distance
+  // Go through file line by line, find the closest timestamp that's in the past, and store its associated file path
   int fileDistance = 1440;
-  char closestFileName[LFS_NAME_MAX + 1] = {0};
-  uint8_t buffer[LFS_NAME_MAX + 1] = {0};
+  char closestFileName[LFS_NAME_MAX + 1];
+  uint8_t buffer[LFS_NAME_MAX + 1];
   const int currentMinute = (dateTime.Hours() * 60) + dateTime.Minutes();
   uint16_t lineNum = 1;
   int configFileError = 0;
@@ -72,7 +73,7 @@ void WatchFaceImages::Refresh() {
       configFileError = 3;
       break;
     }
-    // Buffer now definitely has contents in format "1234 \0"
+    // Buffer now definitely has contents in format "1234 " (WITHOUT NULL TERMINATOR!!)
     const uint16_t entryTimestamp = std::atoi(reinterpret_cast<const char*>(&buffer));
     const uint16_t minutes = entryTimestamp % 100;
     const uint16_t hours = entryTimestamp / 100;
@@ -83,10 +84,9 @@ void WatchFaceImages::Refresh() {
       configFileError = 4;
       break;
     }
-    // Figure out if this is closer than the previous closest item
-    const int tmpFileDistance = currentMinute - (hours * 60 + minutes);
-    int nameLen = 0;
     // Read filename from file, exiting if name is too long
+    // This is required even if the read name is not used since it seeks the file to the next line
+    int nameLen = 0;
     while (true) {
       retval = filesystem.FileRead(&configFileHandle, &buffer[nameLen], 1);
       if (retval == 0 || buffer[nameLen] == '\n') {
@@ -103,6 +103,8 @@ void WatchFaceImages::Refresh() {
       configFileError = 6;
     if (configFileError != 0)
       break;
+    // Figure out if this timestamp is closer than the previous closest item
+    const int tmpFileDistance = currentMinute - (hours * 60 + minutes);
     if (tmpFileDistance >= 0 && tmpFileDistance <= fileDistance) {
       strncpy(closestFileName, reinterpret_cast<const char*>(&buffer), nameLen+1);
       fileDistance = tmpFileDistance;
@@ -110,13 +112,14 @@ void WatchFaceImages::Refresh() {
     lineNum++;
   }
   filesystem.FileClose(&configFileHandle);
+  // If timestamp 0000 was not found, that's an error (also makes sure that config cannot be empty)
   if (configFileError == 0 && !foundTimestampZero) {
     configFileError = 7;
   }
 
   if (configFileError != 0) {
     // <0 = LittleFS error
-    // 1 = Too few chars in timestamp
+    // 1 = Too few chars in timestamp (EOF reached)
     // 2 = Timestamp had non-digit characters
     // 3 = Timestamp was not followed by a space
     // 4 = Minute or hour was too high
@@ -125,18 +128,18 @@ void WatchFaceImages::Refresh() {
     // 7 = Did not find any entry for timestamp 0000
     std::string configErrorMsg = "BAD CONFIG: L";
     configErrorMsg += std::to_string(lineNum);
-    ShowError(configErrorMsg.c_str(), configFileError);
+    DisplayError(configErrorMsg.c_str(), configFileError);
     return;
   }
 
   // Confirm file exists before using it
   imagePath = watchfaceImagesBasePath;
   imagePath += closestFileName;
-  lfs_file_t fileHandle = {0};
+  lfs_file_t fileHandle {};
   retval = filesystem.FileOpen(&fileHandle, &imagePath.c_str()[2], LFS_O_RDONLY);
   filesystem.FileClose(&fileHandle);
   if (retval != 0) {
-    ShowError("IMAGE OPENING", retval);
+    DisplayError("IMAGE OPENING", retval);
     return;
   }
   lv_obj_set_hidden(mainImage, false);
@@ -144,7 +147,7 @@ void WatchFaceImages::Refresh() {
   lv_img_set_src(mainImage, imagePath.c_str());
 }
 
-void WatchFaceImages::ShowError(const char* errorDesc, int errorNum) const {
+void WatchFaceImages::DisplayError(const char* errorDesc, int errorNum) const {
   lv_label_set_text_fmt(errorMessage, "--ERROR--\n%s\nCODE %i", errorDesc, errorNum);
   lv_obj_align(errorMessage, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(mainImage, true);
@@ -160,7 +163,7 @@ WatchFaceImages::~WatchFaceImages() {
 bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::Images>::IsAvailable(Controllers::FS& filesystem) {
   std::string configLocation = &watchfaceImagesBasePath[2];
   configLocation += "config.txt";
-  lfs_file_t configFileHandle = {0};
+  lfs_file_t configFileHandle {};
   const int retval = filesystem.FileOpen(&configFileHandle, configLocation.c_str(), LFS_O_RDONLY);
   if (retval < 0) {
     return false;

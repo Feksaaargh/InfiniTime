@@ -20,7 +20,7 @@ namespace Pinetime {
         void Refresh() override;
 
       private:
-        void ShowError(const char* errorDesc, int errorNum) const;
+        void DisplayError(const char* errorDesc, int errorNum) const;
 
         lv_obj_t* mainImage;
         lv_obj_t* errorMessage;
