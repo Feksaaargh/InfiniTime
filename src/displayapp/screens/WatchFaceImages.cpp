@@ -19,9 +19,15 @@ WatchFaceImages::WatchFaceImages(Controllers::DateTime& dateTime, Controllers::F
   lv_obj_set_hidden(errorMessage, true);
   lv_label_set_align(errorMessage, LV_LABEL_ALIGN_CENTER);
 
-  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
+  imagePath = "";
 
+  taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
   Refresh();
+}
+
+WatchFaceImages::~WatchFaceImages() {
+  lv_task_del(taskRefresh);
+  lv_obj_clean(lv_scr_act());
 }
 
 void WatchFaceImages::Refresh() {
@@ -55,20 +61,28 @@ void WatchFaceImages::Refresh() {
     // 0000 midnight.bin
     // 1330 halfpast1pm.bin
     retval = filesystem.FileRead(&configFileHandle, buffer, 5);
+    // Check if EOF reached
     if (retval == 0) {
       break;
     }
-    // if retval is <0 then read failed, if retval is 1-4 then didn't get enough data
-    if (retval < 5) {
-      configFileError = retval < 0 ? retval : 1;
+    // Check if read failed
+    if (retval < 0) {
+      configFileError = retval;
       break;
     }
+    // Check if got too little data (straggling data at end of file)
+    if (retval < 5) {
+      configFileError = 1;
+      break;
+    }
+    // Check if first four characters are all digits
     for (int i = 0; i < 4; i++) {
       if (buffer[i] < '0' || buffer[i] > '9') {
         configFileError = 2;
         break;
       }
     }
+    // Check if fifth character is a space
     if (buffer[4] != ' ') {
       configFileError = 3;
       break;
@@ -152,11 +166,6 @@ void WatchFaceImages::DisplayError(const char* errorDesc, int errorNum) const {
   lv_obj_align(errorMessage, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(mainImage, true);
   lv_obj_set_hidden(errorMessage, false);
-}
-
-WatchFaceImages::~WatchFaceImages() {
-  lv_task_del(taskRefresh);
-  lv_obj_clean(lv_scr_act());
 }
 
 bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::Images>::IsAvailable(Controllers::FS& filesystem) {
