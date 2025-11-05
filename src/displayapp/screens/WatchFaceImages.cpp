@@ -163,7 +163,6 @@ bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::
   lfs_file_t configFileHandle = {0};
   const int retval = filesystem.FileOpen(&configFileHandle, configLocation.c_str(), LFS_O_RDONLY);
   if (retval < 0) {
-    printf("Failed to open config file: %i\n", retval);
     return false;
   }
   filesystem.FileClose(&configFileHandle);
