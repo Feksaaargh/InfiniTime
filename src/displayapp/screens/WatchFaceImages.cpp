@@ -16,6 +16,8 @@ WatchFaceImages::WatchFaceImages(Controllers::DateTime& dateTime, Controllers::F
   lv_obj_align(mainImage, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 0, 0);
 
   errorMessage = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_hidden(errorMessage, true);
+  lv_label_set_align(errorMessage, LV_LABEL_ALIGN_CENTER);
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 
@@ -143,7 +145,7 @@ void WatchFaceImages::Refresh() {
 }
 
 void WatchFaceImages::ShowError(const char* errorDesc, int errorNum) const {
-  lv_label_set_text_fmt(errorMessage, "--ERROR--\n%s\n%i", errorDesc, errorNum);
+  lv_label_set_text_fmt(errorMessage, "--ERROR--\n%s\nCODE %i", errorDesc, errorNum);
   lv_obj_align(errorMessage, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(mainImage, true);
   lv_obj_set_hidden(errorMessage, false);
