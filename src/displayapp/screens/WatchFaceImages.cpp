@@ -1,5 +1,10 @@
 #include "displayapp/screens/WatchFaceImages.h"
 
+namespace {
+  // Must include LVGL disk and trailing slash
+  const char* watchfaceImagesBasePath = "F:/images_watchface/";
+}
+
 using namespace Pinetime::Applications::Screens;
 
 WatchFaceImages::WatchFaceImages(Controllers::DateTime& dateTime, Controllers::FS& filesystem)
@@ -24,76 +29,121 @@ void WatchFaceImages::Refresh() {
     return;
   }
 
-  // Take note of all timestamps where the image needs to change
-  int retval = 0;
-  // Open the images directory safely
-  lfs_dir_t imagesDirHandle = {0};
-  retval = filesystem.DirOpen(&WATCHFACE_IMAGES_BASE_PATH[2], &imagesDirHandle);
+  int retval;
+  std::string configLocation = &watchfaceImagesBasePath[2];
+  configLocation += "config.txt";
+  lfs_file_t configFileHandle = {0};
+  retval = filesystem.FileOpen(&configFileHandle, configLocation.c_str(), LFS_O_RDONLY);
   if (retval < 0) {
-    ShowError("DIR OPEN", retval);
+    ShowError("CONFIG OPEN", retval);
     return;
   }
 
-  char closestFileName[9] = "0000.bin";
-  int fileDistance = 1339;
-  bool foundZeroBin = false;
-  const int currentMinute = dateTime.Hours() * 60 + dateTime.Minutes();
-  // Go through every file in the directory and find the closest one still under the current minute
+  // Default distance is 1 higher than maximum possible distance
+  int fileDistance = 1440;
+  char closestFileName[LFS_NAME_MAX + 1] = {0};
+  uint8_t buffer[LFS_NAME_MAX + 1] = {0};
+  const int currentMinute = (dateTime.Hours() * 60) + dateTime.Minutes();
+  uint16_t lineNum = 1;
+  int configFileError = 0;
+  bool foundTimestampZero = false;
   while (true) {
-    lfs_info itemInfo = {0};
-    retval = filesystem.DirRead(&imagesDirHandle, &itemInfo);
-    // If the read returns <0, an error occurred. If it returns 0, the end of the directory has been reached without finding 0000.bin.
-    if (retval <= 0) {
-      filesystem.DirClose(&imagesDirHandle);
-      if (retval < 0) {
-        ShowError("DIR STEP", retval);
-      }
+    // Format:
+    // 0000 midnight.bin
+    // 1330 halfpast1pm.bin
+    retval = filesystem.FileRead(&configFileHandle, buffer, 5);
+    if (retval == 0) {
       break;
     }
-    // Attempt to parse the filename as a timestamp
-    if (strcmp(&itemInfo.name[4], ".bin") != 0) {
-      continue;
+    // if retval is <0 then read failed, if retval is 1-4 then didn't get enough data
+    if (retval < 5) {
+      configFileError = retval < 0 ? retval : 1;
+      break;
     }
-    bool isNameAllDigits = true;
     for (int i = 0; i < 4; i++) {
-      if (itemInfo.name[i] < '0' || itemInfo.name[i] > '9')
-        isNameAllDigits = false;
+      if (buffer[i] < '0' || buffer[i] > '9') {
+        configFileError = 2;
+        break;
+      }
     }
-    if (!isNameAllDigits) {
-      continue;
+    if (buffer[4] != ' ') {
+      configFileError = 3;
+      break;
     }
-    // parse filename
-    const int timestamp = std::atoi(itemInfo.name);
-    const int minutes = timestamp % 100;
-    const int hours = timestamp / 100;
+    // Buffer now definitely has contents in format "1234 \0"
+    const uint16_t entryTimestamp = std::atoi(reinterpret_cast<const char*>(&buffer));
+    const uint16_t minutes = entryTimestamp % 100;
+    const uint16_t hours = entryTimestamp / 100;
     if (minutes == 0 && hours == 0) {
-      foundZeroBin = true;
+      foundTimestampZero = true;
     }
     if (minutes >= 60 || hours >= 24) {
-      continue;
+      configFileError = 4;
+      break;
     }
     // Figure out if this is closer than the previous closest item
-    int tmpFileDistance = currentMinute - (hours * 60 + minutes);
-    if (tmpFileDistance >= 0 && tmpFileDistance < fileDistance) {
-      std::copy_n(itemInfo.name, 8, closestFileName);
+    const int tmpFileDistance = currentMinute - (hours * 60 + minutes);
+    int nameLen = 0;
+    // Read filename from file, exiting if name is too long
+    while (true) {
+      retval = filesystem.FileRead(&configFileHandle, &buffer[nameLen], 1);
+      if (retval == 0 || buffer[nameLen] == '\n') {
+        buffer[nameLen] = '\0';
+        break;
+      }
+      if (retval < 0 || nameLen == LFS_NAME_MAX) {
+        configFileError = retval < 0 ? retval : 5;
+        break;
+      }
+      nameLen++;
+    }
+    if (nameLen == 0)
+      configFileError = 6;
+    if (configFileError != 0)
+      break;
+    if (tmpFileDistance >= 0 && tmpFileDistance <= fileDistance) {
+      strncpy(closestFileName, reinterpret_cast<const char*>(&buffer), nameLen+1);
       fileDistance = tmpFileDistance;
     }
+    lineNum++;
   }
-  // Finish up
-  // Require zero bin since it's possible to be needed during execution
-  if (!foundZeroBin) {
-    filesystem.DirClose(&imagesDirHandle);
-    ShowError("NO 0000.bin", -1);
+  filesystem.FileClose(&configFileHandle);
+  if (configFileError == 0 && !foundTimestampZero) {
+    configFileError = 7;
   }
-  imagePath = WATCHFACE_IMAGES_BASE_PATH;
+
+  if (configFileError != 0) {
+    // <0 = LittleFS error
+    // 1 = Too few chars in timestamp
+    // 2 = Timestamp had non-digit characters
+    // 3 = Timestamp was not followed by a space
+    // 4 = Minute or hour was too high
+    // 5 = File name was too long
+    // 6 = Empty filename for entry
+    // 7 = Did not find any entry for timestamp 0000
+    std::string configErrorMsg = "BAD CONFIG: L";
+    configErrorMsg += std::to_string(lineNum);
+    ShowError(configErrorMsg.c_str(), configFileError);
+    return;
+  }
+
+  // Confirm file exists before using it
+  imagePath = watchfaceImagesBasePath;
   imagePath += closestFileName;
+  lfs_file_t fileHandle = {0};
+  retval = filesystem.FileOpen(&fileHandle, &imagePath.c_str()[2], LFS_O_RDONLY);
+  filesystem.FileClose(&fileHandle);
+  if (retval != 0) {
+    ShowError("IMAGE OPENING", retval);
+    return;
+  }
   lv_obj_set_hidden(mainImage, false);
   lv_obj_set_hidden(errorMessage, true);
   lv_img_set_src(mainImage, imagePath.c_str());
 }
 
 void WatchFaceImages::ShowError(const char* errorDesc, int errorNum) const {
-  lv_label_set_text_fmt(errorMessage, "ERROR:\n%s\n%i", errorDesc, errorNum);
+  lv_label_set_text_fmt(errorMessage, "--ERROR--\n%s\n%i", errorDesc, errorNum);
   lv_obj_align(errorMessage, nullptr, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_hidden(mainImage, true);
   lv_obj_set_hidden(errorMessage, false);
@@ -106,31 +156,14 @@ WatchFaceImages::~WatchFaceImages() {
 }
 
 bool Pinetime::Applications::WatchFaceTraits<Pinetime::Applications::WatchFace::Images>::IsAvailable(Controllers::FS& filesystem) {
-  int retval = 0;
-  // TODO: Fix on Infinisim?
-
-  // Open the images directory safely
-  lfs_dir_t imagesDirHandle = {0};
-  retval = filesystem.DirOpen(&WATCHFACE_IMAGES_BASE_PATH[2], &imagesDirHandle);
+  std::string configLocation = &watchfaceImagesBasePath[2];
+  configLocation += "config.txt";
+  lfs_file_t configFileHandle = {0};
+  const int retval = filesystem.FileOpen(&configFileHandle, configLocation.c_str(), LFS_O_RDONLY);
   if (retval < 0) {
-    printf("Failed to open: %i\n", retval);
+    printf("Failed to open config file: %i\n", retval);
     return false;
   }
-
-  // Look for a file named 0000.bin. As long as that file exists, this application will function to some extent.
-  while (true) {
-    lfs_info itemInfo = {0};
-    retval = filesystem.DirRead(&imagesDirHandle, &itemInfo);
-    // If the read returns <0, an error occurred. If it returns 0, the end of the directory has been reached without finding 0000.bin.
-    if (retval <= 0) {
-      printf("Failed to read: %i\n", retval);
-      filesystem.DirClose(&imagesDirHandle);
-      return false;
-    }
-    printf("%s\n", itemInfo.name);
-    if (strcmp(itemInfo.name, "0000.bin") == 0) {
-      filesystem.DirClose(&imagesDirHandle);
-      return true;
-    }
-  }
+  filesystem.FileClose(&configFileHandle);
+  return true;
 }

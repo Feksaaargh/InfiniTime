@@ -8,8 +8,6 @@
 #include <cstring>
 #include <vector>
 
-// Must include trailing slash and LVGL disk
-#define WATCHFACE_IMAGES_BASE_PATH "F:/images_watchface/"
 
 namespace Pinetime {
   namespace Applications {
