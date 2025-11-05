@@ -106,7 +106,7 @@ void WatchFaceImages::Refresh() {
     // Figure out if this timestamp is closer than the previous closest item
     const int tmpFileDistance = currentMinute - (hours * 60 + minutes);
     if (tmpFileDistance >= 0 && tmpFileDistance <= fileDistance) {
-      strncpy(closestFileName, reinterpret_cast<const char*>(&buffer), nameLen+1);
+      strncpy(closestFileName, reinterpret_cast<const char*>(&buffer), nameLen + 1);
       fileDistance = tmpFileDistance;
     }
     lineNum++;
@@ -153,7 +153,6 @@ void WatchFaceImages::DisplayError(const char* errorDesc, int errorNum) const {
   lv_obj_set_hidden(mainImage, true);
   lv_obj_set_hidden(errorMessage, false);
 }
-
 
 WatchFaceImages::~WatchFaceImages() {
   lv_task_del(taskRefresh);

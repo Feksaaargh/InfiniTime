@@ -8,7 +8,6 @@
 #include <cstring>
 #include <vector>
 
-
 namespace Pinetime {
   namespace Applications {
     namespace Screens {
