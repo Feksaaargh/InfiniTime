@@ -38,7 +38,7 @@ void WatchFaceImages::Refresh() {
   lfs_file_t configFileHandle {};
   retval = filesystem.FileOpen(&configFileHandle, configLocation.c_str(), LFS_O_RDONLY);
   if (retval < 0) {
-    DisplayError("CONFIG OPEN", retval);
+    DisplayError("CONFIG OPENING", retval);
     return;
   }
 
