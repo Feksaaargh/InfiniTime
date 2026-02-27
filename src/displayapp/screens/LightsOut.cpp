@@ -178,6 +178,7 @@ void LightsOut::UpdateSelected(const lv_obj_t* object, lv_event_t event) {
 }
 
 // Randomize which buttons are pressed or not, and prevent a too boring game
+// TODO: Remake this system so it generates easier games, and maybe add a difficulty selection
 void LightsOut::GenerateGame() {
   pressedArr = std::vector<std::vector<bool>>(nCols);
   for (int col = 0; col < nCols; col++) {
