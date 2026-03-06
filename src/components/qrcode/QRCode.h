@@ -1,6 +1,8 @@
 #pragma once
 #include "lvgl/src/lv_core/lv_obj.h"
-//#include "QRCodeGenerator.h"
+#include "lvgl/src/lv_widgets/lv_canvas.h"
+#include "QRCodeGenerator.h"
+#include <cstdint>
 
 namespace Pinetime::Tools {
   // Create an empty QRCode object (an lv_canvas)
@@ -8,7 +10,7 @@ namespace Pinetime::Tools {
   // @param size The edge length, in pixels, of the displayed QRCode
   // @param dark_color The color of dark modules in the code
   // @param light_color The color of the light modules in the code
-  // @return A QRCode object
+  // @return A QRCode object, or nullptr if memory allocation failed.
   lv_obj_t* CreateQRCodeCanvas(lv_obj_t* parent,
                                  lv_coord_t size,
                                  lv_color_t darkColor = LV_COLOR_BLACK,
@@ -18,7 +20,7 @@ namespace Pinetime::Tools {
   // @param qrcode A pointer to the qrcode object to update
   // @param data A pointer to a char array containing the data to use
   // @param dataLen The length of the passed data
-  int UpdateQRCodeCanvas(lv_obj_t* qrcode, const char* data, uint16_t dataLen);
+  void UpdateQRCodeCanvas(lv_obj_t* qrcode, const char* data, uint16_t dataLen);
 
   // Destroys a QRCode object
   // @param qrcode The QRCode object to destroy
