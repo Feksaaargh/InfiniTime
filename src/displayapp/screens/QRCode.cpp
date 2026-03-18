@@ -17,8 +17,8 @@ lvgl {lvgl} {
   qrcode = Pinetime::Tools::CreateQRCodeCanvas(lv_scr_act(), 200, LV_COLOR_BLACK, LV_COLOR_WHITE);
   lv_obj_align(qrcode, nullptr, LV_ALIGN_CENTER, 0, 0);
 
-  static constexpr char thingy[] = "testing uwu";
-  Pinetime::Tools::UpdateQRCodeCanvas(qrcode, thingy, 11);
+  static constexpr char thingy[] = "hey what are you doing here? you really shouldn't be here you know. it's also kinda rude to be looking at test strings without permission, you know? although this is on a public github repo, so idk... ok whatever ig you can look. this is just to test excessively long strings on hardware anyway, so nothing sensitive. but still, you could've asked before poking around. also you just lost the game :3";
+  Pinetime::Tools::UpdateQRCodeCanvas(qrcode, thingy, 400);
 }
 
 QRCode::~QRCode() {

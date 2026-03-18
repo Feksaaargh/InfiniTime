@@ -21,6 +21,7 @@ namespace Pinetime::Tools {
   // https://www.thonky.com/qr-code-tutorial/alignment-pattern-locations
   // The alignment pattern location start and increment for each qr code version.
   // Only unique per version.
+  // If no alignment patterns are to be generated for the given version, patternStart must be 0.
   // TODO: Find formal definition of the placements and adjust as needed
   struct QRAlignmentPlacement {
     uint8_t patternStart;

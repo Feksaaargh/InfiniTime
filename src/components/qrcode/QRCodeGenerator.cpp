@@ -144,7 +144,7 @@ void AppendableBitArray::AppendBits(uint8_t value, uint8_t numBits) {
 
   value &= 0xFF >> (8 - numBits);
   uint32_t targetByte = usedBits / 8;
-  uint8_t remainingSpaceInByte = 8 - (usedBits & 8);
+  uint8_t remainingSpaceInByte = 8 - (usedBits % 8);
 
   if (numBits <= remainingSpaceInByte) {
     // Value fits entirely in current byte
