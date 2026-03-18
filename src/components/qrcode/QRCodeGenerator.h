@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <cassert>
+#include <memory>
 
 namespace Pinetime::Tools {
   // https://www.thonky.com/qr-code-tutorial/error-correction-table
@@ -17,7 +18,6 @@ namespace Pinetime::Tools {
     uint8_t group2BlockSize;
   };
 
-
   // https://www.thonky.com/qr-code-tutorial/alignment-pattern-locations
   // The alignment pattern location start and increment for each qr code version.
   // Only unique per version.
@@ -26,7 +26,6 @@ namespace Pinetime::Tools {
     uint8_t patternStart;
     uint8_t patternIncrement;
   };
-
 
   // A uint8_t array that is built up by appending bits to it, ignoring byte boundaries.
   class AppendableBitArray {
@@ -37,7 +36,7 @@ namespace Pinetime::Tools {
 
   public:
     AppendableBitArray(uint32_t size);
-    AppendableBitArray(AppendableBitArray& other);
+    AppendableBitArray(const AppendableBitArray& other);
     ~AppendableBitArray();
 
     // Appends number of bits from the LEAST significant side of the value to the array.
@@ -49,39 +48,36 @@ namespace Pinetime::Tools {
     [[nodiscard]] uint32_t GetUsedBytes() const;
   };
 
-
-  // A 2D canvas of bits.
-  // TODO: Change to a QR specific structure (was BitField2D)
-  // TODO: Make this the class handling putting data into the final QR code and whatnot
-  // Also will need a version field
-  class BitField2D {
+  // A class for creating and holding a 2D canvas of bits representing a QR code.
+  class QRCodeModules {
   private:
-    uint16_t width;
-    uint16_t height;
+    uint8_t version;
     uint32_t arrSize;
     uint8_t* arr;
 
   public:
-    BitField2D(uint16_t width, uint16_t height);
-    BitField2D(BitField2D& other);
-    ~BitField2D();
+    QRCodeModules(uint8_t version);
+    QRCodeModules(QRCodeModules& other);
+    ~QRCodeModules();
 
-    // Get or set bits in the field.
-    void Set(uint16_t x, uint16_t y, bool value);
-    [[nodiscard]] bool Get(uint16_t x, uint16_t y) const;
-    // Fill is a convenience function and is not faster than setting each pixel individually.
-    // Bounds are INCLUSIVE.
+    [[nodiscard]] inline uint16_t GetSize() const;
+    [[nodiscard]] inline uint16_t GetVersion() const;
+
+    // Get or set bits in the field
+    void SetModule(uint16_t x, uint16_t y, bool value);
+    [[nodiscard]] bool GetModule(uint16_t x, uint16_t y) const;
+    // Fill is a convenience function and is not faster than setting each pixel individually
+    // Bounds are INCLUSIVE
     // TODO: Make it faster?
     void Fill(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, bool value);
   };
 
-
   // A block of a QR code. Also used to generate EC data.
   class QRBlockWithEC {
   private:
-    uint8_t *message;
+    uint8_t* message;
     uint16_t messageLen;
-    uint8_t *ecData;
+    uint8_t* ecData;
     uint16_t ecDataLen;
 
     // Helper class for dealing with Galois field math
@@ -89,6 +85,7 @@ namespace Pinetime::Tools {
     class Alpha {
     private:
       uint8_t exponent;
+
     public:
       Alpha();
       Alpha(uint8_t exponent);
@@ -99,17 +96,48 @@ namespace Pinetime::Tools {
     };
 
     // Size of destination must be at least [ecCodewordCount+1]
-    static void MakeGeneratorPolynomial(uint8_t ecCodewordCount, Alpha *destination);
+    static void MakeGeneratorPolynomial(uint8_t ecCodewordCount, Alpha* destination);
 
   public:
     QRBlockWithEC(uint16_t messageLen, uint16_t ecDataLen);
-    QRBlockWithEC(QRBlockWithEC &other);
+    QRBlockWithEC(QRBlockWithEC& other);
+    QRBlockWithEC() : QRBlockWithEC(0, 0) {};
     ~QRBlockWithEC();
+
+    [[nodiscard]] uint16_t GetMsgLen() const;
+    [[nodiscard]] uint16_t GetECLen() const;
 
     void SetToMsg(uint16_t index, uint8_t value);
     [[nodiscard]] uint8_t GetFromMsg(uint16_t index) const;
     [[nodiscard]] uint8_t GetFromECData(uint16_t index) const;
 
     void GenerateECData();
+  };
+
+  // A class to contain the main generation process
+  class QRCodeGenerator {
+  private:
+    // Returns data of appropriate size given the version. Data must fit in the given version.
+    static std::unique_ptr<uint8_t[]> GenerateQRContents(const char* data, int dataLen, int version);
+    // Structures the final code from the given contents. Deletes the contents variable.
+    static QRCodeModules StructureFinalCode(std::unique_ptr<uint8_t[]> contents, int version);
+
+    // Used while generating the data contents. Returns 41 if data cannot fit in any version.
+    static int FindMinFittingVersion(uint16_t dataLength);
+
+    // Used while structuring the final code
+    static void PlaceReservedModules(QRCodeModules& qrCode);
+    static bool IsReservedModule(uint8_t version, int x, int y);
+    static int FindAndApplyOptimalMask(QRCodeModules& qrCode); // Returns optimal mask ID
+    static void ApplyMask(QRCodeModules& qrCode, int mask);
+    static void PlaceMetadata(QRCodeModules& qrCode, int chosenMask); // Assumes low error correction
+    static void PlaceVersionInfo(QRCodeModules& qrCode);
+
+  public:
+    QRCodeGenerator() = delete;
+
+    // TODO: Change weird uint16_t things to regular ints
+    // Returns QRCodeModules of size 0 in case of error
+    static QRCodeModules GenerateQRCode(const char* data, uint16_t dataLen);
   };
 }
