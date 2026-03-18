@@ -4,7 +4,8 @@ using namespace Pinetime::Tools;
 
 namespace {
   constexpr uint8_t MAX_BLOCK_EC_LENGTH = 30;
-  constexpr uint16_t MAX_BLOCK_MESSAGE_LENGTH = 123;
+  constexpr uint16_t MAX_BLOCK_MESSAGE_LENGTH = 123; // in version
+  constexpr int MAX_BLOCK_COUNT = 25;
 
   // TODO: Make this a LOT nicer
   // Information for LOW error correction QR codes. Index 0 is junk, 1-40 contain the respective versions.
@@ -99,7 +100,11 @@ namespace {
 AppendableBitArray::AppendableBitArray(uint32_t size) {
   usedBits = 0;
   arrSize = size;
-  arr = new uint8_t[arrSize];
+  if (size) {
+    arr = new uint8_t[arrSize];
+  } else {
+    arr = nullptr;
+  }
   for (uint32_t i = 0; i < arrSize; i++)
     arr[i] = 0;
 }
@@ -168,19 +173,31 @@ uint32_t AppendableBitArray::GetUsedBytes() const {
 QRCodeModules::QRCodeModules(uint8_t version) {
   this->version = version;
   const uint32_t area = this->GetSize() * this->GetSize();
-  arrSize = area / 8 + (area % 8 != 0);
-  arr = new uint8_t[arrSize];
+  if (version) {
+    arrSize = area / 8 + (area % 8 != 0);
+    arr = new uint8_t[arrSize];
+    std::fill_n(arr, arrSize, 0);
+  } else {
+    arrSize = 0;
+    arr = nullptr;
+  }
 }
 
 QRCodeModules::QRCodeModules(QRCodeModules& other) {
   version = other.version;
   arrSize = other.arrSize;
-  arr = new uint8_t[arrSize];
-  memcpy(arr, other.arr, arrSize);
+  if (arrSize) {
+    arr = new uint8_t[arrSize];
+    memcpy(arr, other.arr, arrSize);
+  } else {
+    arr = nullptr;
+  }
 }
 
 QRCodeModules::~QRCodeModules() {
-  delete[] arr;
+  if (arr) {
+    delete[] arr;
+  }
 }
 
 QRCodeModules& QRCodeModules::operator=(const QRCodeModules& other) {
@@ -189,11 +206,19 @@ QRCodeModules& QRCodeModules::operator=(const QRCodeModules& other) {
 
   version = other.version;
   if (arrSize != other.arrSize) {
-    delete[] arr;
     arrSize = other.arrSize;
-    arr = new uint8_t[arrSize];
+    if (arr) {
+      delete[] arr;
+    }
+    if (arrSize) {
+      arr = new uint8_t[arrSize];
+    } else {
+      arr = nullptr;
+    }
   }
-  memcpy(arr, other.arr, arrSize);
+  if (arrSize) {
+    memcpy(arr, other.arr, arrSize);
+  }
   return *this;
 }
 
@@ -247,7 +272,7 @@ QRBlockWithEC::Alpha::Alpha(uint8_t exponent) {
 
 QRBlockWithEC::Alpha QRBlockWithEC::Alpha::FromInt(uint8_t integer) {
   // TODO: Investigate why this is being hit
-  //assert(integer != 0); // Cannot convert integer 0 to Alpha
+  // assert(integer != 0); // Cannot convert integer 0 to Alpha
 
   // intToAlphaTable[0] is junk
   static constexpr uint8_t intToAlphaTable[] = {
@@ -293,22 +318,40 @@ QRBlockWithEC::QRBlockWithEC(uint16_t messageLen, uint16_t ecDataLen) {
 
   this->messageLen = messageLen;
   this->ecDataLen = ecDataLen;
-  message = new uint8_t[messageLen];
-  ecData = new uint8_t[ecDataLen];
+  if (messageLen) {
+    message = new uint8_t[messageLen];
+  } else {
+    message= nullptr;
+  }
+  if (ecDataLen) {
+    ecData = new uint8_t[ecDataLen];
+  } else {
+    ecData = nullptr;
+  }
 }
 
 QRBlockWithEC::QRBlockWithEC(QRBlockWithEC& other) {
   this->messageLen = other.messageLen;
   this->ecDataLen = other.ecDataLen;
-  message = new uint8_t[messageLen];
-  ecData = new uint8_t[ecDataLen];
-  memcpy(message, other.message, messageLen);
-  memcpy(ecData, other.ecData, ecDataLen);
+  if (messageLen) {
+    message = new uint8_t[messageLen];
+    memcpy(message, other.message, messageLen);
+  } else {
+    message = nullptr;
+  }
+  if (ecDataLen) {
+    ecData = new uint8_t[ecDataLen];
+    memcpy(ecData, other.ecData, ecDataLen);
+  } else {
+    ecData = nullptr;
+  }
 }
 
 QRBlockWithEC::~QRBlockWithEC() {
-  delete[] message;
-  delete[] ecData;
+  if (message)
+    delete[] message;
+  if (ecData)
+    delete[] ecData;
 }
 
 QRBlockWithEC& QRBlockWithEC::operator=(QRBlockWithEC& other) {
@@ -316,17 +359,29 @@ QRBlockWithEC& QRBlockWithEC::operator=(QRBlockWithEC& other) {
     return *this;
 
   if (messageLen != other.messageLen) {
-    delete[] message;
     messageLen = other.messageLen;
-    message = new uint8_t[messageLen];
+    if (message)
+      delete[] message;
+    if (messageLen) {
+      message = new uint8_t[messageLen];
+    } else {
+      message = nullptr;
+    }
   }
   if (ecDataLen != other.ecDataLen) {
-    delete[] ecData;
     ecDataLen = other.ecDataLen;
-    ecData = new uint8_t[ecDataLen];
+    if (ecData)
+      delete[] ecData;
+    if (ecDataLen) {
+      ecData = new uint8_t[ecDataLen];
+    } else {
+      ecData = nullptr;
+    }
   }
-  memcpy(message, other.message, messageLen);
-  memcpy(ecData, other.ecData, ecDataLen);
+  if (messageLen)
+    memcpy(message, other.message, messageLen);
+  if (ecDataLen)
+    memcpy(ecData, other.ecData, ecDataLen);
   return *this;
 }
 
@@ -429,7 +484,7 @@ std::unique_ptr<uint8_t[]> QRCodeGenerator::GenerateQRContents(const char* data,
   }
 
   // Create blocks
-  QRBlockWithEC* qrBlocks[versionInfo.group1BlockCount + versionInfo.group2BlockCount];
+  QRBlockWithEC* qrBlocks[MAX_BLOCK_COUNT];
   for (uint8_t i = 0; i < versionInfo.group1BlockCount; i++) {
     qrBlocks[i] = new QRBlockWithEC(versionInfo.group1BlockSize, versionInfo.ecCodewords);
   }
@@ -502,7 +557,7 @@ QRCodeModules QRCodeGenerator::StructureFinalCode(std::unique_ptr<uint8_t[]> con
     if ((curCol > 5 && (curCol / 2) % 2 == 0) || curCol == 3) {
       // going up
       for (int y = qrSize - 1; y >= 0; y--) {
-        for (int x = curCol; x < curCol - 2; x--) {
+        for (int x = curCol; x >= curCol - 1; x--) {
           if (IsReservedModule(version, x, y))
             continue;
           finalCode.SetModule(x, y, contents[currentByte] & bitMask);
@@ -516,7 +571,7 @@ QRCodeModules QRCodeGenerator::StructureFinalCode(std::unique_ptr<uint8_t[]> con
     } else {
       // going down
       for (int y = 0; y < qrSize; y++) {
-        for (int x = curCol; x < curCol - 2; x--) {
+        for (int x = curCol; x >= curCol - 1; x--) {
           if (IsReservedModule(version, x, y))
             continue;
           finalCode.SetModule(x, y, contents[currentByte] & bitMask);
@@ -560,12 +615,15 @@ void QRCodeGenerator::PlaceReservedModules(QRCodeModules& qrCode) {
   const QRAlignmentPlacement& alignerPlacement = versionPatternSpacings[qrCode.GetVersion()];
 
   // Finder patterns
+  qrCode.Fill(0, 0, 7, 7, false);
   qrCode.Fill(0, 0, 6, 6, true);
   qrCode.Fill(1, 1, 5, 5, false);
   qrCode.Fill(2, 2, 4, 4, true);
+  qrCode.Fill(qrSize - 8, 0, qrSize - 1, 7, false);
   qrCode.Fill(qrSize - 7, 0, qrSize - 1, 6, true);
   qrCode.Fill(qrSize - 6, 1, qrSize - 2, 5, false);
   qrCode.Fill(qrSize - 5, 2, qrSize - 3, 4, true);
+  qrCode.Fill(0, qrSize - 8, 7, qrSize - 1, false);
   qrCode.Fill(0, qrSize - 7, 6, qrSize - 1, true);
   qrCode.Fill(1, qrSize - 6, 5, qrSize - 2, false);
   qrCode.Fill(2, qrSize - 5, 4, qrSize - 3, true);
@@ -633,7 +691,7 @@ bool QRCodeGenerator::IsReservedModule(uint8_t version, int x, int y) {
   }
   // check line of alignment patterns closest to the top
   if (y < patternStart - 2) {
-    if (y - 4 < 5 and x < qrSize - 9) {
+    if (y - 4 < 5 && x >= patternStart - 2 && x < qrSize - 9) {
       return (x - patternStart + 2) % patternIncrement < 5;
     }
     return false;
@@ -711,7 +769,7 @@ void QRCodeGenerator::PlaceMetadata(QRCodeModules& qrCode, int chosenMask) {
       continue;
     formatDivisionWorking ^= formatGeneratorPolynomial << (step - 10);
   }
-  // Append error correction and XOR it with the required mask
+  // Append error correction and XOR it with the mask string
   formatInformation |= formatDivisionWorking;
   formatInformation ^= 0b101010000010010;
 
@@ -732,7 +790,7 @@ void QRCodeGenerator::PlaceMetadata(QRCodeModules& qrCode, int chosenMask) {
   }
   // Around bottom left and top right finders
   mask = 1 << 14;
-  for (int y = qrCode.GetSize() - 1; y >= qrCode.GetSize(); y--) {
+  for (int y = qrCode.GetSize() - 1; y >= qrCode.GetSize() - 7; y--) {
     qrCode.SetModule(8, y, formatInformation & mask);
     mask >>= 1;
   }
