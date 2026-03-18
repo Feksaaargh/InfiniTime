@@ -206,7 +206,7 @@ uint16_t QRCodeModules::GetVersion() const {
 }
 
 void QRCodeModules::SetModule(uint16_t x, uint16_t y, bool value) {
-  assert(x < width && y < height); // Accesses must be in bounds
+  assert(x < this->GetSize() && y < this->GetSize()); // Accesses must be in bounds
 
   uint32_t targetByte = (y * this->GetSize() + x) / 8;
   uint8_t targetBit = (y * this->GetSize() + x) % 8;
@@ -219,7 +219,7 @@ void QRCodeModules::SetModule(uint16_t x, uint16_t y, bool value) {
 }
 
 bool QRCodeModules::GetModule(uint16_t x, uint16_t y) const {
-  assert(x < width && y < height); // Accesses must be in bounds
+  assert(x < this->GetSize() && y < this->GetSize()); // Accesses must be in bounds
 
   uint32_t targetByte = (y * this->GetSize() + x) / 8;
   uint8_t targetBit = (y * this->GetSize() + x) % 8;
