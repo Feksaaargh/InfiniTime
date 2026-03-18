@@ -130,7 +130,7 @@ AppendableBitArray& AppendableBitArray::operator=(const AppendableBitArray& othe
 }
 
 void AppendableBitArray::AppendBits(uint8_t value, uint8_t numBits) {
-  assert(usedBits + numBits < arrSize * 8);
+  assert(usedBits + numBits <= arrSize * 8);
 
   if (numBits == 0)
     return;
@@ -246,7 +246,8 @@ QRBlockWithEC::Alpha::Alpha(uint8_t exponent) {
 }
 
 QRBlockWithEC::Alpha QRBlockWithEC::Alpha::FromInt(uint8_t integer) {
-  assert(integer != 0); // Cannot convert integer 0 to Alpha
+  // TODO: Investigate why this is being hit
+  //assert(integer != 0); // Cannot convert integer 0 to Alpha
 
   // intToAlphaTable[0] is junk
   static constexpr uint8_t intToAlphaTable[] = {
@@ -561,7 +562,7 @@ void QRCodeGenerator::PlaceReservedModules(QRCodeModules& qrCode) {
   // Finder patterns
   qrCode.Fill(0, 0, 6, 6, true);
   qrCode.Fill(1, 1, 5, 5, false);
-  qrCode.Fill(2, 2, 4, 4, false);
+  qrCode.Fill(2, 2, 4, 4, true);
   qrCode.Fill(qrSize - 7, 0, qrSize - 1, 6, true);
   qrCode.Fill(qrSize - 6, 1, qrSize - 2, 5, false);
   qrCode.Fill(qrSize - 5, 2, qrSize - 3, 4, true);

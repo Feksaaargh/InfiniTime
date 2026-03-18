@@ -16,6 +16,7 @@ namespace Pinetime {
       private:
         lv_obj_t* qrcode;
         Components::LittleVgl& lvgl;
+        lv_style_t qrcodeBGStyle;
       };
     }
 
