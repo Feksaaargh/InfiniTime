@@ -115,6 +115,20 @@ AppendableBitArray::~AppendableBitArray() {
   delete[] arr;
 }
 
+AppendableBitArray& AppendableBitArray::operator=(const AppendableBitArray& other) {
+  if (&other == this)
+    return *this;
+
+  usedBits = other.usedBits;
+  if (arrSize != other.arrSize) {
+    delete[] arr;
+    arrSize = other.arrSize;
+    arr = new uint8_t[arrSize];
+  }
+  memcpy(arr, other.arr, arrSize);
+  return *this;
+}
+
 void AppendableBitArray::AppendBits(uint8_t value, uint8_t numBits) {
   assert(usedBits + numBits < arrSize * 8);
 
@@ -167,6 +181,20 @@ QRCodeModules::QRCodeModules(QRCodeModules& other) {
 
 QRCodeModules::~QRCodeModules() {
   delete[] arr;
+}
+
+QRCodeModules& QRCodeModules::operator=(const QRCodeModules& other) {
+  if (&other == this)
+    return *this;
+
+  version = other.version;
+  if (arrSize != other.arrSize) {
+    delete[] arr;
+    arrSize = other.arrSize;
+    arr = new uint8_t[arrSize];
+  }
+  memcpy(arr, other.arr, arrSize);
+  return *this;
 }
 
 uint16_t QRCodeModules::GetSize() const {
@@ -282,6 +310,25 @@ QRBlockWithEC::~QRBlockWithEC() {
   delete[] ecData;
 }
 
+QRBlockWithEC& QRBlockWithEC::operator=(QRBlockWithEC& other) {
+  if (&other == this)
+    return *this;
+
+  if (messageLen != other.messageLen) {
+    delete[] message;
+    messageLen = other.messageLen;
+    message = new uint8_t[messageLen];
+  }
+  if (ecDataLen != other.ecDataLen) {
+    delete[] ecData;
+    ecDataLen = other.ecDataLen;
+    ecData = new uint8_t[ecDataLen];
+  }
+  memcpy(message, other.message, messageLen);
+  memcpy(ecData, other.ecData, ecDataLen);
+  return *this;
+}
+
 uint16_t QRBlockWithEC::GetMsgLen() const {
   return messageLen;
 }
@@ -381,18 +428,18 @@ std::unique_ptr<uint8_t[]> QRCodeGenerator::GenerateQRContents(const char* data,
   }
 
   // Create blocks
-  auto* qrBlocks = new QRBlockWithEC[versionInfo.group1BlockCount + versionInfo.group2BlockCount];
+  QRBlockWithEC* qrBlocks[versionInfo.group1BlockCount + versionInfo.group2BlockCount];
   for (uint8_t i = 0; i < versionInfo.group1BlockCount; i++) {
-    qrBlocks[i] = QRBlockWithEC(versionInfo.group1BlockSize, versionInfo.ecCodewords);
+    qrBlocks[i] = new QRBlockWithEC(versionInfo.group1BlockSize, versionInfo.ecCodewords);
   }
   for (uint8_t i = 0; i < versionInfo.group2BlockCount; i++) {
-    qrBlocks[versionInfo.group1BlockCount + i] = QRBlockWithEC(versionInfo.group2BlockSize, versionInfo.ecCodewords);
+    qrBlocks[versionInfo.group1BlockCount + i] = new QRBlockWithEC(versionInfo.group2BlockSize, versionInfo.ecCodewords);
   }
 
   // Copy contents into blocks and generate their EC datas
   int contentsPosition = 0;
   for (int i = 0; i < versionInfo.group1BlockCount + versionInfo.group2BlockCount; i++) {
-    QRBlockWithEC& block = qrBlocks[i];
+    QRBlockWithEC& block = *qrBlocks[i];
     for (uint16_t j = 0; j < block.GetMsgLen(); j++) {
       block.SetToMsg(j, baseContents->GetByte(contentsPosition));
       contentsPosition++;
@@ -415,7 +462,7 @@ std::unique_ptr<uint8_t[]> QRCodeGenerator::GenerateQRContents(const char* data,
   // Interleave message
   for (int dataIdx = 0; dataIdx < std::max(versionInfo.group1BlockSize, versionInfo.group2BlockSize); dataIdx++) {
     for (int blockIdx = 0; blockIdx < versionInfo.group1BlockCount + versionInfo.group2BlockCount; blockIdx++) {
-      QRBlockWithEC& block = qrBlocks[blockIdx];
+      QRBlockWithEC& block = *qrBlocks[blockIdx];
       if (dataIdx >= block.GetMsgLen())
         continue;
       finalData[finalDataPosition] = block.GetFromMsg(dataIdx);
@@ -425,9 +472,14 @@ std::unique_ptr<uint8_t[]> QRCodeGenerator::GenerateQRContents(const char* data,
   // Interleave error correction
   for (int dataIdx = 0; dataIdx < versionInfo.ecCodewords; dataIdx++) {
     for (int blockIdx = 0; blockIdx < versionInfo.group1BlockCount + versionInfo.group2BlockCount; blockIdx++) {
-      finalData[finalDataPosition] = qrBlocks[blockIdx].GetFromECData(dataIdx);
+      finalData[finalDataPosition] = qrBlocks[blockIdx]->GetFromECData(dataIdx);
       finalDataPosition++;
     }
+  }
+
+  // Delete intermediary blocks since those are on heap
+  for (int i = 0; i < versionInfo.group1BlockCount + versionInfo.group2BlockCount; i++) {
+    delete qrBlocks[i];
   }
 
   return finalData;

@@ -8,7 +8,7 @@ lvgl {lvgl} {
   lv_obj_align(qrcode, nullptr, LV_ALIGN_CENTER, 0, 0);
 
   static constexpr char thingy[] = "testing uwu";
-  Pinetime::Tools::UpdateQRCodeCanvas(qrcode, thingy, 7);
+  Pinetime::Tools::UpdateQRCodeCanvas(qrcode, thingy, 11);
 }
 
 QRCode::~QRCode() {

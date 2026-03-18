@@ -38,6 +38,7 @@ namespace Pinetime::Tools {
     AppendableBitArray(uint32_t size);
     AppendableBitArray(const AppendableBitArray& other);
     ~AppendableBitArray();
+    AppendableBitArray& operator=(const AppendableBitArray& other);
 
     // Appends number of bits from the LEAST significant side of the value to the array.
     // So AppendBits(0b00001101, 3) would append 0b101 to the array.
@@ -59,9 +60,10 @@ namespace Pinetime::Tools {
     QRCodeModules(uint8_t version);
     QRCodeModules(QRCodeModules& other);
     ~QRCodeModules();
+    QRCodeModules& operator=(const QRCodeModules& other);
 
-    [[nodiscard]] inline uint16_t GetSize() const;
-    [[nodiscard]] inline uint16_t GetVersion() const;
+    [[nodiscard]] uint16_t GetSize() const;
+    [[nodiscard]] uint16_t GetVersion() const;
 
     // Get or set bits in the field
     void SetModule(uint16_t x, uint16_t y, bool value);
@@ -103,6 +105,7 @@ namespace Pinetime::Tools {
     QRBlockWithEC(QRBlockWithEC& other);
     QRBlockWithEC() : QRBlockWithEC(0, 0) {};
     ~QRBlockWithEC();
+    QRBlockWithEC& operator=(QRBlockWithEC& other);
 
     [[nodiscard]] uint16_t GetMsgLen() const;
     [[nodiscard]] uint16_t GetECLen() const;

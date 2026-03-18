@@ -11,10 +11,8 @@ namespace Pinetime::Tools {
   // @param dark_color The color of dark modules in the code
   // @param light_color The color of the light modules in the code
   // @return A QRCode object, or nullptr if memory allocation failed.
-  lv_obj_t* CreateQRCodeCanvas(lv_obj_t* parent,
-                                 lv_coord_t size,
-                                 lv_color_t darkColor = LV_COLOR_BLACK,
-                                 lv_color_t lightColor = LV_COLOR_WHITE);
+  lv_obj_t*
+  CreateQRCodeCanvas(lv_obj_t* parent, lv_coord_t size, lv_color_t darkColor = LV_COLOR_BLACK, lv_color_t lightColor = LV_COLOR_WHITE);
 
   // Updates a QRCode object with the provided data
   // @param qrcode A pointer to the qrcode object to update
