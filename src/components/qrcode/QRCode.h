@@ -15,12 +15,12 @@ namespace Pinetime::Tools {
   CreateQRCodeCanvas(lv_obj_t* parent, lv_coord_t size, lv_color_t darkColor = LV_COLOR_BLACK, lv_color_t lightColor = LV_COLOR_WHITE);
 
   // Updates a QRCode object with the provided data
-  // @param qrcode A pointer to the qrcode object to update
+  // @param qrCode A pointer to the qrCode object to update
   // @param data A pointer to a char array containing the data to use
   // @param dataLen The length of the passed data
-  void UpdateQRCodeCanvas(lv_obj_t* qrcode, const char* data, uint16_t dataLen);
+  void UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uint16_t dataLen);
 
   // Destroys a QRCode object
-  // @param qrcode The QRCode object to destroy
-  void DeleteQRCodeCanvas(lv_obj_t* qrcode);
+  // @param qrCode The QRCode object to destroy
+  void DeleteQRCodeCanvas(lv_obj_t* qrCode);
 }
