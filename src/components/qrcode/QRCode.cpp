@@ -27,32 +27,26 @@ void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrcode, const char* data, uin
   const lv_coord_t canvasWidth = lv_obj_get_width(qrcode);
   const lv_coord_t canvasHeight = lv_obj_get_height(qrcode);
 
-  // Check if qr code failed to generate
-  if (qrCodeModules.GetVersion() == 0) {
-    // Fill bg
-    lv_color_t bgColor;
-    bgColor.full = 0; // light color
-    lv_canvas_fill_bg(qrcode, bgColor, 0);
-    // Draw text
-    lv_draw_label_dsc_t label_dsc;
-    lv_draw_label_dsc_init(&label_dsc);
-    label_dsc.color.full = 1; // dark color
-    lv_canvas_draw_text(qrcode,
-                        canvasWidth / 2,
-                        canvasHeight / 10,
-                        canvasWidth * 8 / 10,
-                        &label_dsc,
-                        "QR code failed to generate",
-                        LV_LABEL_ALIGN_CENTER);
-    return;
-  }
-
-  // TODO: Make better (use lv_canvas_draw_rect)
-  // Populate the canvas
+  // Colors for later use
   lv_color_t lightColor;
   lightColor.full = 0;
   lv_color_t darkColor;
   darkColor.full = 1;
+
+  // Check if qr code failed to generate
+  if (qrCodeModules.GetVersion() == 0) {
+    // Fill with dark and add a light X onto it
+    lv_canvas_fill_bg(qrcode, darkColor, LV_OPA_COVER);
+    lv_coord_t bigXSize = std::min(canvasWidth, canvasHeight);
+    for (lv_coord_t pos = 0; pos < bigXSize; pos++) {
+      lv_canvas_set_px(qrcode, pos, pos, lightColor);
+      lv_canvas_set_px(qrcode, bigXSize - pos, pos, lightColor);
+    }
+    return;
+  }
+
+  // TODO: MAKE WAYYYY FASTER
+  // Populate the canvas
   int modulesSize = qrCodeModules.GetSize();
   for (lv_coord_t y = 0; y < canvasHeight; y++) {
     for (lv_coord_t x = 0; x < canvasWidth; x++) {
