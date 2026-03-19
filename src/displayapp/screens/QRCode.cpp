@@ -18,11 +18,13 @@ lvgl {lvgl} {
   lv_obj_align(qrcode, nullptr, LV_ALIGN_CENTER, 0, 0);
 
   // 400 chars:
-  static constexpr char thingy[] = "hey what are you doing here? you really shouldn't be here you know. it's also kinda rude to be looking at test strings without permission, you know? although this is on a public github repo, so idk... ok whatever ig you can look. this is just to test excessively long strings on hardware anyway, so nothing sensitive. but still, you could've asked before poking around. also you just lost the game :3";
+  // static constexpr char thingy[] = "hey what are you doing here? you really shouldn't be here you know. it's also kinda rude to be looking at test strings without permission, you know? although this is on a public github repo, so idk... ok whatever ig you can look. this is just to test excessively long strings on hardware anyway, so nothing sensitive. but still, you could've asked before poking around. also you just lost the game :3";
   // 28 chars:
-  // static constexpr char thingy[] = "https://youtu.be/dQw4w9WgXcQ";
+  static constexpr char thingy[] = "https://youtu.be/dQw4w9WgXcQ";
   Pinetime::Tools::UpdateQRCodeCanvas(qrcode, thingy, sizeof(thingy) - 1);  // -1 since null terminator doesn't need to be incode
 }
+
+// TODO: Move qr code generation to be generated in the update function if longer than, say, 100 chars (for app opening speed)
 
 QRCode::~QRCode() {
   Pinetime::Tools::DeleteQRCodeCanvas(qrcode);

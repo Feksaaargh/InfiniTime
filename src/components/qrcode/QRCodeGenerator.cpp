@@ -705,6 +705,18 @@ bool QRCodeGenerator::IsReservedModule(uint8_t version, int x, int y) {
 
 int QRCodeGenerator::FindAndApplyOptimalMask(QRCodeModules& qrCode) {
   // TODO: IMPLEMENT
+  // This is a dummy implementation to mimic the speed of the real implementation
+  for (int i = 0; i < 8; i++) {
+    ApplyMask(qrCode, i);
+    int accum = 0;
+    for (int y = 0; y < qrCode.GetSize(); y++) {
+      for (int x = 0; x < qrCode.GetSize(); x++) {
+        accum += qrCode.GetModule(x, y);
+      }
+    }
+    (void)accum;
+    ApplyMask(qrCode, i);
+  }
   ApplyMask(qrCode, 0);
   return 0;
 }

@@ -45,7 +45,7 @@ void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrcode, const char* data, uin
     return;
   }
 
-  // TODO: MAKE WAYYYY FASTER
+  // TODO: MAKE WAYYYY FASTER (modify canvas data directly, rect doesn't work here)
   // Populate the canvas
   int modulesSize = qrCodeModules.GetSize();
   for (lv_coord_t y = 0; y < canvasHeight; y++) {
