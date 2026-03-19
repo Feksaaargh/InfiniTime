@@ -43,19 +43,37 @@ void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uin
     return;
   }
 
-  // TODO: MAKE WAYYYY FASTER (modify canvas data directly, rect doesn't work here)
   // Populate the canvas
+  lv_canvas_fill_bg(qrCode, lightColor, LV_OPA_COVER);
+  // lv_canas_set_px is far too slow for this many operations, so need to modify canvas buffer directly
+  // This is similar to lv_canvas_set_px but skips much of the overhead from repeatedly calling it
+  lv_img_dsc_t* qrCodeImageDsc = lv_canvas_get_img(qrCode);
+  uint8_t* qrCodeImageData = const_cast<unsigned char*>(qrCodeImageDsc->data + (sizeof(lv_color32_t) * 2));
+
   int modulesSize = qrCodeModules.GetSize();
+  // For each row, walk a mask along it and set any bits that need setting
   for (lv_coord_t y = 0; y < canvasHeight; y++) {
+    uint8_t mask = 0x80;
+    lv_coord_t rowByte = 0;
+    uint8_t* row = &qrCodeImageData[((canvasWidth + 7) >> 3) * y];
     for (lv_coord_t x = 0; x < canvasWidth; x++) {
-      const bool moduleValue = qrCodeModules.GetModule(x * modulesSize / canvasWidth, y * modulesSize / canvasHeight);
-      lv_canvas_set_px(qrCode, x, y, moduleValue ? darkColor : lightColor);
+      const bool isPixelDark = qrCodeModules.GetModule(x * modulesSize / canvasWidth, y * modulesSize / canvasHeight);
+      if (isPixelDark) {
+        row[rowByte] |= mask;
+      }
+      mask >>= 1;
+      if (mask == 0) {
+        mask = 0x80;
+        rowByte++;
+      }
     }
   }
+
+  lv_obj_invalidate(qrCode);
 }
 
 void Pinetime::Tools::DeleteQRCodeCanvas(lv_obj_t* qrCode) {
-  lv_img_dsc_t* canvasData = lv_canvas_get_img(qrCode);
+  const lv_img_dsc_t* canvasData = lv_canvas_get_img(qrCode);
   const uint8_t* canvasBuffer = canvasData->data;
   lv_obj_del(qrCode);
   lv_mem_free(canvasBuffer);
