@@ -18,7 +18,8 @@ namespace Pinetime::Tools {
   // @param qrCode A pointer to the qrCode object to update
   // @param data A pointer to a char array containing the data to use
   // @param dataLen The length of the passed data
-  void UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uint16_t dataLen);
+  // @return True if the QR code successfully updated, False otherwise. Object shows an X pattern if updating failed.
+  bool UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uint16_t dataLen);
 
   // Destroys a QRCode object
   // @param qrCode The QRCode object to destroy

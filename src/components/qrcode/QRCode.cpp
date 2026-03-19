@@ -12,14 +12,12 @@ lv_obj_t* Pinetime::Tools::CreateQRCodeCanvas(lv_obj_t* parent, lv_coord_t size,
   lv_canvas_set_palette(qrCanvas, 0, lightColor);
   lv_canvas_set_palette(qrCanvas, 1, darkColor);
 
-  lv_color_t fillColor;
-  fillColor.full = 0;
-  lv_canvas_fill_bg(qrCanvas, fillColor, 0);
+  lv_canvas_fill_bg(qrCanvas, lightColor, 0);
 
   return qrCanvas;
 }
 
-void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uint16_t dataLen) {
+bool Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uint16_t dataLen) {
   // Generate QR code
   const QRCodeModules qrCodeModules = QRCodeGenerator::GenerateQRCode(data, dataLen);
 
@@ -40,7 +38,7 @@ void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uin
       lv_canvas_set_px(qrCode, pos, pos, lightColor);
       lv_canvas_set_px(qrCode, bigXSize - pos, pos, lightColor);
     }
-    return;
+    return false;
   }
 
   // Populate the canvas
@@ -58,6 +56,7 @@ void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uin
     uint8_t* row = &qrCodeImageData[((canvasWidth + 7) >> 3) * y];
     for (lv_coord_t x = 0; x < canvasWidth; x++) {
       const bool isPixelDark = qrCodeModules.GetModule(x * modulesSize / canvasWidth, y * modulesSize / canvasHeight);
+      // Since data is already zeroed out (all light), only need to set pixels that are dark
       if (isPixelDark) {
         row[rowByte] |= mask;
       }
@@ -70,6 +69,7 @@ void Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uin
   }
 
   lv_obj_invalidate(qrCode);
+  return true;
 }
 
 void Pinetime::Tools::DeleteQRCodeCanvas(lv_obj_t* qrCode) {
