@@ -10,13 +10,15 @@ namespace Pinetime {
     namespace Screens {
       class QRCode : public Screen {
       public:
-        QRCode(Components::LittleVgl&);
+        QRCode(Components::LittleVgl&, Controllers::FS& filesystem);
         ~QRCode() override;
 
       private:
-        lv_obj_t* qrCode;
-        Components::LittleVgl& lvgl;
         lv_style_t qrCodeBGStyle;
+        lv_obj_t* qrCode;
+
+        Components::LittleVgl& lvgl;
+        Controllers::FS& filesystem;
       };
     }
 
@@ -26,7 +28,7 @@ namespace Pinetime {
       static constexpr const char* icon = "Q";
 
       static Screens::Screen* Create(AppControllers& controllers) {
-        return new Screens::QRCode(controllers.lvgl);
+        return new Screens::QRCode(controllers.lvgl, controllers.filesystem);
       }
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
