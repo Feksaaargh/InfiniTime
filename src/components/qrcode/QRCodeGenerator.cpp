@@ -603,7 +603,7 @@ QRCodeModules QRCodeGenerator::StructureFinalCode(std::unique_ptr<uint8_t[]> con
 
 int QRCodeGenerator::FindMinFittingVersion(uint16_t dataLength) {
   for (int i = 1; i < 41; i++) {
-    if (versionInfos[i].capacity > dataLength) {
+    if (versionInfos[i].capacity >= dataLength) {
       return i;
     }
   }
