@@ -602,9 +602,12 @@ QRCodeModules QRCodeGenerator::StructureFinalCode(std::unique_ptr<uint8_t[]> con
 }
 
 int QRCodeGenerator::FindMinFittingVersion(uint16_t dataLength) {
-  for (int i = 1; i < 41; i++) {
-    if (versionInfos[i].capacity >= dataLength) {
-      return i;
+  for (int version = 1; version < 41; version++) {
+    // TODO (clion doesn't recognize //HACK)
+    // HACK: Header size is hardcoded here and is only accurate for byte mode.
+    const int headerSize = version < 10 ? 2 : 3;
+    if (versionInfos[version].capacity - headerSize >= dataLength) {
+      return version;
     }
   }
   return 41;

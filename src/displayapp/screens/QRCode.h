@@ -52,10 +52,10 @@ namespace Pinetime {
         unsigned int numFoundQREntries = 0;
         unsigned int currentChosenEntry = 0;
 
-        // If a QR code's contents are above this size, mark its name in red in the list (0 to disable) (default: 861)
-        static constexpr unsigned int warnAboveContentSize = 861;  // version 20 code
-        // If a QR code's contents are above this size, ignore it entirely (default: 2956)
-        static constexpr unsigned int ignoreAboveContentSize = 2956;  // version 40 code
+        // If a QR code's contents are above this size, mark its name in red in the list (0 to disable) (default: 858)
+        static constexpr unsigned int warnAboveContentSize = 858;  // version 20, low error correction, byte mode
+        // If a QR code's contents are above this size, ignore it entirely (default: 2953)
+        static constexpr unsigned int ignoreAboveContentSize = 2953;  // version 40, low error correction, byte mode
 
         lv_style_t qrCodeBGStyle;
         lv_obj_t* qrCode;
