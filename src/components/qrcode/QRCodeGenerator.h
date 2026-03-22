@@ -142,6 +142,6 @@ namespace Pinetime::Tools {
 
     // TODO: Change weird uint16_t things to regular ints
     // Returns QRCodeModules of size 0 in case of error
-    static QRCodeModules GenerateQRCode(const char* data, uint16_t dataLen);
+    static QRCodeModules GenerateQRCode(const char* data);
   };
 }

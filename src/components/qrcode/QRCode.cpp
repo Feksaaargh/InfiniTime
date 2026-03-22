@@ -17,9 +17,9 @@ lv_obj_t* Pinetime::Tools::CreateQRCodeCanvas(lv_obj_t* parent, lv_coord_t size,
   return qrCanvas;
 }
 
-bool Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data, uint16_t dataLen) {
+bool Pinetime::Tools::UpdateQRCodeCanvas(lv_obj_t* qrCode, const char* data) {
   // Generate QR code
-  const QRCodeModules qrCodeModules = QRCodeGenerator::GenerateQRCode(data, dataLen);
+  const QRCodeModules qrCodeModules = QRCodeGenerator::GenerateQRCode(data);
 
   // Constants describing the qrCode object
   const lv_coord_t canvasWidth = lv_obj_get_width(qrCode);

@@ -840,8 +840,10 @@ void QRCodeGenerator::PlaceVersionInfo(QRCodeModules& qrCode) {
   }
 }
 
-QRCodeModules QRCodeGenerator::GenerateQRCode(const char* data, const uint16_t dataLen) {
-  int version = FindMinFittingVersion(dataLen);
+QRCodeModules QRCodeGenerator::GenerateQRCode(const char* data) {
+  const int dataLen = static_cast<int>(strlen(data));
+
+  const int version = FindMinFittingVersion(dataLen);
   if (version > 40 || version < 1) {
     return QRCodeModules(0);
   }
