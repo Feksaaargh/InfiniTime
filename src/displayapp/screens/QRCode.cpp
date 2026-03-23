@@ -7,6 +7,8 @@ QRCode::QRCode(Components::LittleVgl& lvgl, Controllers::FS& filesystem)
     filesystem{filesystem} {
 
   isMenuOpen = false;
+  areQREntriesValid = false;
+  numFoundQREntries = 0;
 
   lv_style_init(&qrCodeBGStyle);
   lv_style_set_bg_color(&qrCodeBGStyle, LV_STATE_DEFAULT, LV_COLOR_WHITE);
@@ -34,27 +36,7 @@ QRCode::QRCode(Components::LittleVgl& lvgl, Controllers::FS& filesystem)
                                                LV_COLOR_WHITE);
   lv_obj_align(qrCode, nullptr, LV_ALIGN_CENTER, 0, 0);
 
-  // Read file and populate QR code (either now or later if the first entry is too long)
-  const bool readSuccess = ReadDataFile();
-  if (!readSuccess) {
-    ShowErrorMessage(ErrorMessageType::BadConfigFile);
-  } else if (numFoundQREntries == 0) {
-    ShowErrorMessage(ErrorMessageType::EmptyConfigFile);
-  } else {
-    // Read succeeded
-    // TODO: Remove test code
-    // for (unsigned int i = 0; i < numFoundQREntries; i++) {
-    //   const auto entry = foundQRCodeEntries[i];
-    //   printf("IDX %u\nSTART: %lu (%u)\nCONTENT: %lu (%u)\n\n", i, entry.nameStart, entry.nameLength, entry.contentStart, entry.contentLength);
-    // }
-
-    currentChosenEntry = 0;
-    if (foundQRCodeEntries[currentChosenEntry].contentLength > warnAboveContentSize) {
-      UpdateQRCodeLater();
-    } else {
-      UpdateQRCode();
-    }
-  }
+  OpenMenu();
 }
 
 QRCode::~QRCode() {
@@ -72,17 +54,20 @@ bool QRCode::OnTouchEvent(TouchEvents event) {
   return false;
 }
 
-void QRCode::UpdateQRCodeLater() {
-  // TODO: Figure out why LV_TASK_PRIO_LOW is required (or if it even is)
-  lv_task_t* updateLaterTask = lv_task_create(UpdateQRCodeLaterCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_LOW, this);
-  lv_task_set_repeat_count(updateLaterTask, 1);
-}
-
-void QRCode::UpdateQRCodeLaterCallback(lv_task_t* task) {
-  static_cast<QRCode*>(task->user_data)->UpdateQRCode();
+bool QRCode::OnButtonPushed() {
+  if (isMenuOpen && canCloseMenu) {
+    CloseMenu();
+    return true;
+  }
+  return false;
 }
 
 void QRCode::UpdateQRCode() {
+  assert(areQREntriesValid);
+  if (!areQREntriesValid) {
+    return;
+  }
+
   int retval;
   lfs_file_t configHandle;
 
@@ -110,7 +95,6 @@ void QRCode::UpdateQRCode() {
     return;
   }
   qrContents[chosenEntry.contentLength] = '\0';
-
   filesystem.FileClose(&configHandle);
 
   Pinetime::Tools::UpdateQRCodeCanvas(qrCode, qrContents);
@@ -125,15 +109,21 @@ void QRCode::OpenMenu() {
   }
   // TODO: Implement
   // Reference Settings.cpp/Settings.h for how to make screens of text
+
+  isMenuOpen = true;
 }
 
-void QRCode::CloseMenu() const {
+void QRCode::CloseMenu() {
   if (!isMenuOpen)
     return;
   // TODO: Implement
+  isMenuOpen = false;
 }
 
 bool QRCode::ReadDataFile() {
+  areQREntriesValid = false;
+  numFoundQREntries = 0;
+
   int retval;
   lfs_file_t configHandle;
 
@@ -188,6 +178,7 @@ bool QRCode::ReadDataFile() {
         numFoundQREntries++;
       }
       NRF_LOG_INFO("[QRCode] Everything succeeded (EOF)\n");
+      areQREntriesValid = true;
       return true;
     }
 
@@ -222,6 +213,7 @@ bool QRCode::ReadDataFile() {
       if (numFoundQREntries == maxQREntries) {
         filesystem.FileClose(&configHandle);
         NRF_LOG_INFO("[QRCode] Everything succeeded (max QR entries)\n");
+        areQREntriesValid = true;
         return true;
       }
       curEntryInfo = {curByteOffset+1, 0, 0, 0};

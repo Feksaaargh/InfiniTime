@@ -18,17 +18,15 @@ namespace Pinetime {
 
       private:
         bool OnTouchEvent(TouchEvents event) override;
-
-        // Creates an LVGL one-shot task so the QR code update happens later.
-        // Used to improve app startup time at the cost of not showing the QR code during the slide-in animation.
-        void UpdateQRCodeLater();
-        static void UpdateQRCodeLaterCallback(lv_task_t* task);
+        bool OnButtonPushed() override;
 
         // Updates the QR code based on currentChosenEntry and foundQRCodeEntries
         void UpdateQRCode();
 
+        // TODO: Look into not losing position with notifs and whatnot like Settings.h/cpp
+        // TODO: Try using
         void OpenMenu();
-        void CloseMenu() const;
+        void CloseMenu();
 
         // Reads the data file containing available QR codes and populates foundQRCodeEntries
         // @return True if read succeeded, false otherwise.
@@ -44,18 +42,13 @@ namespace Pinetime {
         void ShowErrorMessage(const char* errorString);
         void HideErrorMessage();
 
+        // *Start variables are byte offsets into the config file
         struct ConfigFileEntryInfo {
           uint32_t nameStart;
           uint16_t nameLength;
           uint32_t contentStart;
           uint16_t contentLength;
         };
-
-        // 400 chars:
-        static constexpr char thingy[] =
-          "hey what are you doing here? you really shouldn't be here you know. it's also kinda rude to be looking at test strings without permission, you know? although this is on a public github repo, so idk... ok whatever ig you can look. this is just to test excessively long strings on hardware anyway, so nothing sensitive. but still, you could've asked before poking around. also you just lost the game :3";
-        // 28 chars:
-        // static constexpr char thingy[] = "https://youtu.be/dQw4w9WgXcQ";
 
         // Path to the config file
         // Lines must follow following format to be valid:
@@ -86,22 +79,26 @@ namespace Pinetime {
         // Maximum number of valid lines that can be read from the file
         static constexpr unsigned int maxQREntries = 20;
 
-        // List of all found valid entries. *Start variables are byte offsets into the config file.
+        // List of all found valid entries
         ConfigFileEntryInfo foundQRCodeEntries[maxQREntries];
 
         // Number of valid entries found in the file
         unsigned int numFoundQREntries = 0;
+        bool areQREntriesValid = false;
         // Entry the user chose
-        unsigned int currentChosenEntry = 0;
+        unsigned int currentChosenEntry;
 
         // Maximum name size (entry names are truncated above this size)
         static constexpr unsigned int truncateAboveNameSize = 30;
-        // If a QR code's contents are above this size, mark its name in red in the list (0 to disable) (default: 858)
-        static constexpr unsigned int warnAboveContentSize = 858; // version 20, low error correction, byte mode
-        // If a QR code's contents are above this size, ignore it entirely (default: 2953)
-        static constexpr unsigned int ignoreAboveContentSize = 2953; // version 40, low error correction, byte mode
+        // If a QR code's contents are above this size, mark its name in red in the list (0 to disable)
+        // Default: 858 (Version 20, low error correction, byte mode)
+        static constexpr unsigned int warnAboveContentSize = 858;
+        // If a QR code's contents are above this size, ignore it entirely
+        // Default: 2953 (Version 40, low error correction, byte mode)
+        static constexpr unsigned int ignoreAboveContentSize = 2953;
 
         bool isMenuOpen;
+        bool canCloseMenu;  // Set on app startup to not show a blank QR code
 
         lv_style_t qrCodeBGStyle;
         lv_obj_t* qrCode;
