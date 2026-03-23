@@ -6,6 +6,7 @@
 #include "components/qrcode/QRCode.h"
 #include "components/fs/FS.h"
 #include "littlefs/lfs.h"
+#include <nrf_log.h>
 
 namespace Pinetime {
   namespace Applications {
